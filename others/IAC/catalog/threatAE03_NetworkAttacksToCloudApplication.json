@@ -1,0 +1,39 @@
+{
+  "id": "threatAE03_NetworkAttacksToCloudApplication",
+  "metadata": {
+    "ns:textReviewContext": "Remote user interacts with a cloud application",
+    "ns:textName": "AE03 Network Attacks To Cloud Application",
+    "ns:textReviewSolution": "Apply firewall service; Apply bastion host; Apply intrusion detection; Apply intrusion prevention; Apply Web Application Firewall (WAF); Apply Cyber Threat Intelligence (CTI) service;",
+    "ns:textURL": "",
+    "ns:textReviewProblem": "Remote side can perform remote malicious activities based on misconfiguration or vulnerabilities of the cloud application",
+    "ns:textReference": "Automated Threat Detection, Web Application Firewall [Rath]"
+  },
+  "organization": {
+    "ns:usesPattern": [],
+    "ns:hasGroup": [],
+    "ns:hasType": ["ns:type_ThreatPattern"],
+    "ns:hasTemplate": [],
+    "ns:relatesTo": [],
+    "ns:isChildOf": []
+  },
+  "common": {
+    "ns:hasArchitecturalLayer": [],
+    "ns:hasResponseType": [],
+    "ns:hasDomain": [],
+    "ns:hasSecurityLevel": [],
+    "ns:hasLifecycleStage": [],
+    "ns:hasConstraintLevel": []
+  },
+  "context": {
+    "ns:hasAffectedFunction": [],
+    "ns:hasAffectedComponent": ["su:comp_CloudApplication"]
+  },
+  "security": {
+    "ns:hasThreat": ["ns:threat_txTrafficAnalysisAndSniffing", "ns:threat_txCovertNetworkChannel", "ns:threat_txRoutePoisoning", "ns:threat_txUseOfAbnormalPacketSizes", "ns:threat_txUseOfReservedProtocolPackets", "ns:threat_txProtocolStateExploitation", "ns:threat_txScanningInformationGathering", "ns:threat_txProbingVulnerabilityChecking"],
+    "ns:hasAggressor": ["su:comp_RemoteUser"],
+    "ns:hasAggressorRole": ["ns:role_Client"],
+    "ns:hasWeakness": [],
+    "ns:hasSTRIDE": [],
+    "ns:hasSecurityConcern": []
+  }
+}

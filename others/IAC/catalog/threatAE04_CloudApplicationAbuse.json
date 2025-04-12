@@ -1,0 +1,39 @@
+{
+  "id": "threatAE04_CloudApplicationAbuse",
+  "metadata": {
+    "ns:textReviewContext": "Remote user interacts with a cloud application",
+    "ns:textName": "AE04 Cloud Application Abuse",
+    "ns:textReviewSolution": "Apply intrusion detection; Apply audit of logs and events;",
+    "ns:textURL": "",
+    "ns:textReviewProblem": "Malicious usage (abuse) of cloud application from the Internet (e.g. sending spam, participating botnet, mining) after gain control on it",
+    "ns:textReference": "TIS.020 [BDU]"
+  },
+  "organization": {
+    "ns:usesPattern": [],
+    "ns:hasGroup": [],
+    "ns:hasType": ["ns:type_ThreatPattern"],
+    "ns:hasTemplate": [],
+    "ns:relatesTo": [],
+    "ns:isChildOf": []
+  },
+  "common": {
+    "ns:hasArchitecturalLayer": [],
+    "ns:hasResponseType": [],
+    "ns:hasDomain": [],
+    "ns:hasSecurityLevel": [],
+    "ns:hasLifecycleStage": [],
+    "ns:hasConstraintLevel": []
+  },
+  "context": {
+    "ns:hasAffectedFunction": [],
+    "ns:hasAffectedComponent": ["su:comp_CloudApplication"]
+  },
+  "security": {
+    "ns:hasThreat": ["ns:threat_txUnauthorizedAccess", "ns:threat_txUnsafeCodeExecution", "ns:threat_txResourceExhaustion"],
+    "ns:hasAggressor": ["su:comp_RemoteUser"],
+    "ns:hasAggressorRole": ["ns:role_Client"],
+    "ns:hasWeakness": [],
+    "ns:hasSTRIDE": [],
+    "ns:hasSecurityConcern": []
+  }
+}

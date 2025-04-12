@@ -1,0 +1,39 @@
+{
+  "id": "threatAD03_DataBreachByCloudApplication",
+  "metadata": {
+    "ns:textReviewContext": "Someone interacts with a cloud application",
+    "ns:textName": "AD03 Data Breach By Cloud Application",
+    "ns:textReviewSolution": "Ensure data security of cloud infrastructure; Apply data classification; Apply access controls as per classification; Avoid storing of sensitive data; Ensure strong encryption algorithms and protocols; Ensure security of key management; Ensure the use of strong hashing functions for storing passwords; Avoid Client Side Caching;",
+    "ns:textURL": "",
+    "ns:textReviewProblem": "Data breach (information disclosure) by the cloud application",
+    "ns:textReference": "Sensitive Data Exposure [OWASP10]; Data Breaches [CSA10]; R.19: Compromise service engine [ENISA]; Compromise service engine [QUIRC]; Computation on Encrypted Data [Rath];"
+  },
+  "organization": {
+    "ns:usesPattern": [],
+    "ns:hasGroup": [],
+    "ns:hasType": ["ns:type_ThreatPattern"],
+    "ns:hasTemplate": [],
+    "ns:relatesTo": [],
+    "ns:isChildOf": []
+  },
+  "common": {
+    "ns:hasArchitecturalLayer": [],
+    "ns:hasResponseType": [],
+    "ns:hasDomain": [],
+    "ns:hasSecurityLevel": [],
+    "ns:hasLifecycleStage": [],
+    "ns:hasConstraintLevel": []
+  },
+  "context": {
+    "ns:hasAffectedFunction": [],
+    "ns:hasAffectedComponent": ["su:comp_CloudApplication"]
+  },
+  "security": {
+    "ns:hasThreat": ["ns:threat_txMessageSecrecyViolation", "ns:threat_txTrafficAnalysisAndSniffing", "ns:threat_txOutputInformationDisclosure", "ns:threat_txDataInference"],
+    "ns:hasAggressor": ["su:comp_CloudApplication", "su:comp_ExternalService", "su:comp_RemoteUser"],
+    "ns:hasAggressorRole": ["ns:role_Client"],
+    "ns:hasWeakness": [],
+    "ns:hasSTRIDE": ["ns:STRIDE_Information_Disclosure"],
+    "ns:hasSecurityConcern": []
+  }
+}

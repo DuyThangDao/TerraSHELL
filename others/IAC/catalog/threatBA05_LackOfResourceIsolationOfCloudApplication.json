@@ -1,0 +1,39 @@
+{
+  "id": "threatBA05_LackOfResourceIsolationOfCloudApplication",
+  "metadata": {
+    "ns:textReviewContext": "Compliance manager works with cloud application",
+    "ns:textName": "BA05 Lack Of Resource Isolation Of Cloud Application",
+    "ns:textReviewSolution": "Define data isolation testing procedures (SLA);",
+    "ns:textURL": "",
+    "ns:textReviewProblem": "Lack of data, code, network isolation of cloud applications caused by misconfigurations and vulnerabilities of cloud infrastructure",
+    "ns:textReference": "R.9 Isolation failure [ENISA]; Isolation Failure [QUIRC]; Data Isolation Testing Level [Casola];"
+  },
+  "organization": {
+    "ns:usesPattern": [],
+    "ns:hasGroup": [],
+    "ns:hasType": ["ns:type_ThreatPattern"],
+    "ns:hasTemplate": [],
+    "ns:relatesTo": [],
+    "ns:isChildOf": []
+  },
+  "common": {
+    "ns:hasArchitecturalLayer": [],
+    "ns:hasResponseType": [],
+    "ns:hasDomain": [],
+    "ns:hasSecurityLevel": [],
+    "ns:hasLifecycleStage": [],
+    "ns:hasConstraintLevel": []
+  },
+  "context": {
+    "ns:hasAffectedFunction": [],
+    "ns:hasAffectedComponent": ["su:comp_CloudApplication"]
+  },
+  "security": {
+    "ns:hasThreat": [],
+    "ns:hasAggressor": ["su:comp_ComplianceManager"],
+    "ns:hasAggressorRole": ["ns:role_Client"],
+    "ns:hasWeakness": [],
+    "ns:hasSTRIDE": ["ns:STRIDE_Information_Disclosure","ns:STRIDE_Tampering"],
+    "ns:hasSecurityConcern": []
+  }
+}

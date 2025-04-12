@@ -1,0 +1,39 @@
+{
+  "id": "threatAE01_DDoSAttackToCloudApplication",
+  "metadata": {
+    "ns:textReviewContext": "Remote user interacts with a cloud application",
+    "ns:textName": "AE01 DDoS Attack To Cloud Application",
+    "ns:textReviewSolution": "Ensure network and server capacity of cloud infrastructure; Apply Load Balancer; Apply Content Distribution Network (CDN); Apply packet filtering; Apply Access Control Lists (ACLs); Apply Web Application Firewall (WAF); Apply reputation-based blocking; Apply external DDoS protection;",
+    "ns:textURL": "",
+    "ns:textReviewProblem": "DDoS/DoS attack against cloud application from the Internet",
+    "ns:textReference": "BNA-2: Denial of Service (DoS) attack against the cloud infrastructure via the public network infrastructure [SECCRIT]; R.15: Distributed Denial Of Service (DDoS) [ENISA]; Distributed Denial of Service [QUIRC];"
+  },
+  "organization": {
+    "ns:usesPattern": [],
+    "ns:hasGroup": [],
+    "ns:hasType": ["ns:type_ThreatPattern"],
+    "ns:hasTemplate": [],
+    "ns:relatesTo": [],
+    "ns:isChildOf": []
+  },
+  "common": {
+    "ns:hasArchitecturalLayer": [],
+    "ns:hasResponseType": [],
+    "ns:hasDomain": [],
+    "ns:hasSecurityLevel": [],
+    "ns:hasLifecycleStage": [],
+    "ns:hasConstraintLevel": []
+  },
+  "context": {
+    "ns:hasAffectedFunction": [],
+    "ns:hasAffectedComponent": ["su:comp_CloudApplication"]
+  },
+  "security": {
+    "ns:hasThreat": ["ns:threat_txTargetedProcessCrashing", "ns:threat_txResourceExhaustion"],
+    "ns:hasAggressor": ["su:comp_RemoteUser"],
+    "ns:hasAggressorRole": ["ns:role_Client"],
+    "ns:hasWeakness": [],
+    "ns:hasSTRIDE": ["ns:STRIDE_Denial_of_Service"],
+    "ns:hasSecurityConcern": []
+  }
+}

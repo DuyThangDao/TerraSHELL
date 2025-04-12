@@ -1,0 +1,94 @@
+rules:
+  - id: is-public-subnet
+    mode: join
+    join:
+      rules:
+        - id: internet-gateway
+          languages: [hcl]
+          patterns: 
+            - pattern: |
+                resource "aws_internet_gateway" "$IGW_NAME" {
+                  ...
+                }
+
+        - id: route-table
+          languages: [hcl]
+          patterns: 
+            - pattern-inside: |
+                resource "aws_route_table" "$RT_NAME" {
+                  ...
+                }
+            - pattern-inside: |
+                route {
+                  ...
+                }
+            - patterns:
+              - pattern: |
+                  ...
+                  cidr_block = "0.0.0.0/0"
+                  ...
+              - pattern-either: 
+                - pattern: |
+                    ...
+                    gateway_id = "${aws_internet_gateway.$IGW_NAME.id}"
+                    ...
+                - pattern: |
+                    ...
+                    gateway_id = aws_internet_gateway.$IGW_NAME.id
+                    ...
+          
+        - id: route-table-assoc
+          languages: [hcl]
+          patterns:
+            - pattern-inside: |
+                resource "aws_route_table_association" "$RT_ASSOC_NAME" {
+                  ...
+                }
+            - pattern-either:
+              - pattern: |
+                  ...
+                  route_table_id = aws_route_table.$RT_NAME.id
+                  ...
+              - pattern: |
+                  ...
+                  route_table_id = "${aws_route_table.$RT_NAME.id}"
+                  ...
+            - pattern-either: 
+              - pattern: |
+                  ...
+                  for_each = {for $K, $V in aws_subnet.$SN_NAME: $K => $V}
+                  ...
+              - pattern: |
+                  ...
+                  subnet_id = aws_subnet.$SN_NAME.id
+                  ...
+              - pattern: |
+                  ...
+                  subnet_id = "${aws_subnet.$SN_NAME.id}"
+                  ...
+
+        - id: subnet
+          languages: [hcl]
+          patterns: 
+            - pattern: |
+                resource "aws_subnet" "$SN_NAME" {
+                  ...
+                }
+      on:
+        - route-table.$IGW_NAME == internet-gateway.$IGW_NAME
+        - route-table-assoc.$RT_NAME == route-table.$RT_NAME
+        - subnet.$SN_NAME == route-table-assoc.$SN_NAME
+        
+    message: aws_subnet.$SN_NAME
+    severity: INFO
+
+  - id: is-public-subnet-1
+    languages: [hcl]
+    message: aws_subnet.$SN_NAME
+    severity: INFO
+    pattern: |
+      resource "aws_subnet" "$SN_NAME" {
+        ...
+        map_public_ip_on_launch = true
+        ...
+      }

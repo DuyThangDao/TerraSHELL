@@ -1,0 +1,8 @@
+rules:
+- id: clean_depend_on
+  languages: [hcl]
+  severity: INFO
+  pattern: |
+    depends_on = $DP_ON
+  message: $DP_ON
+  fix: "" 

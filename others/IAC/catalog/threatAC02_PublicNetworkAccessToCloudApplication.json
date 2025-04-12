@@ -1,0 +1,39 @@
+{
+  "id": "threatAC02_PublicNetworkAccessToCloudApplication",
+  "metadata": {
+    "ns:textReviewContext": "Remote user interacts with a cloud application",
+    "ns:textName": "AC02 Public Network Access To Cloud Application",
+    "ns:textReviewSolution": "Apply TLS encryption and certificate for the cloud application; Apply VPN access to the cloud application",
+    "ns:textURL": "",
+    "ns:textReviewProblem": "Remote user connects to the cloud application though a public network (e.g. Wi-Fi) and can be attacked by a third-party adversary",
+    "ns:textReference": "BNA-4: Man-in-the-middle attack... [SECCRIT] "
+  },
+  "organization": {
+    "ns:usesPattern": [],
+    "ns:hasGroup": [],
+    "ns:hasType": ["ns:type_ThreatPattern"],
+    "ns:hasTemplate": [],
+    "ns:relatesTo": [],
+    "ns:isChildOf": []
+  },
+  "common": {
+    "ns:hasArchitecturalLayer": [],
+    "ns:hasResponseType": [],
+    "ns:hasDomain": [],
+    "ns:hasSecurityLevel": [],
+    "ns:hasLifecycleStage": [],
+    "ns:hasConstraintLevel": []
+  },
+  "context": {
+    "ns:hasAffectedFunction": [],
+    "ns:hasAffectedComponent": ["su:comp_RemoteUser"]
+  },
+  "security": {
+    "ns:hasThreat": ["ns:threat_txTrafficAnalysisAndSniffing", "ns:threat_txMessageSecrecyViolation", "ns:threat_txSessionHijacking", "ns:threat_txRoutePoisoning", "ns:threat_txMessageReuse"],
+    "ns:hasAggressor": ["su:comp_CloudApplication"],
+    "ns:hasAggressorRole": ["ns:role_Server"],
+    "ns:hasWeakness": [],
+    "ns:hasSTRIDE": ["ns:STRIDE_Information_Disclosure", "ns:STRIDE_Tampering"],
+    "ns:hasSecurityConcern": []
+  }
+}

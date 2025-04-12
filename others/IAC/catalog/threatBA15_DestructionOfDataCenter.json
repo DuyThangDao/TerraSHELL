@@ -1,0 +1,39 @@
+{
+  "id": "threatBA15_DestructionOfDataCenter",
+  "metadata": {
+    "ns:textReviewContext": "Compliance manager works with cloud application",
+    "ns:textName": "BA15 Destruction Of Data Center",
+    "ns:textReviewSolution": "Define different data centre locations (SLA);",
+    "ns:textURL": "",
+    "ns:textReviewProblem": "Natural disasters destroy data centre or cloud infrastructure (Force Majeure)",
+    "ns:textReference": "R.35: Natural disasters [ENISA]; Total expenses due to compensatory damages, Average expenses due to compensatory damages, Level of Diversity, Datacenter Location [Casola]"
+  },
+  "organization": {
+    "ns:usesPattern": [],
+    "ns:hasGroup": [],
+    "ns:hasType": ["ns:type_ThreatPattern"],
+    "ns:hasTemplate": [],
+    "ns:relatesTo": [],
+    "ns:isChildOf": []
+  },
+  "common": {
+    "ns:hasArchitecturalLayer": [],
+    "ns:hasResponseType": [],
+    "ns:hasDomain": [],
+    "ns:hasSecurityLevel": [],
+    "ns:hasLifecycleStage": [],
+    "ns:hasConstraintLevel": []
+  },
+  "context": {
+    "ns:hasAffectedFunction": [],
+    "ns:hasAffectedComponent": ["su:comp_CloudApplication"]
+  },
+  "security": {
+    "ns:hasThreat": [],
+    "ns:hasAggressor": ["su:comp_ComplianceManager"],
+    "ns:hasAggressorRole": ["ns:role_Client"],
+    "ns:hasWeakness": [],
+    "ns:hasSTRIDE": [],
+    "ns:hasSecurityConcern": []
+  }
+}

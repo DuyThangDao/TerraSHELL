@@ -1,0 +1,39 @@
+{
+  "id": "threatBA10_ServiceProviderLockIn",
+  "metadata": {
+    "ns:textReviewContext": "Compliance manager works with cloud application",
+    "ns:textName": "BA10 Service Provider Lock-In",
+    "ns:textReviewSolution": "",
+    "ns:textURL": "",
+    "ns:textReviewProblem": "Service provider lock-in",
+    "ns:textReference": "R.1: Lock-in (SaaS Lock-in, PaaS Lock-in, IaaS Lock-in) [ENISA]; OI-5: Contractual issues that emerge because of bankruptcy and potential switching costs [SECCRIT]"
+  },
+  "organization": {
+    "ns:usesPattern": [],
+    "ns:hasGroup": [],
+    "ns:hasType": ["ns:type_ThreatPattern"],
+    "ns:hasTemplate": [],
+    "ns:relatesTo": [],
+    "ns:isChildOf": []
+  },
+  "common": {
+    "ns:hasArchitecturalLayer": [],
+    "ns:hasResponseType": [],
+    "ns:hasDomain": [],
+    "ns:hasSecurityLevel": [],
+    "ns:hasLifecycleStage": [],
+    "ns:hasConstraintLevel": []
+  },
+  "context": {
+    "ns:hasAffectedFunction": [],
+    "ns:hasAffectedComponent": ["su:comp_CloudApplication"]
+  },
+  "security": {
+    "ns:hasThreat": [],
+    "ns:hasAggressor": ["su:comp_ComplianceManager"],
+    "ns:hasAggressorRole": ["ns:role_Client"],
+    "ns:hasWeakness": [],
+    "ns:hasSTRIDE": [],
+    "ns:hasSecurityConcern": []
+  }
+}

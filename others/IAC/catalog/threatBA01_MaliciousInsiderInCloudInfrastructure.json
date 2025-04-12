@@ -1,0 +1,39 @@
+{
+  "id": "threatBA01_MaliciousInsiderInCloudInfrastructure",
+  "metadata": {
+    "ns:textReviewContext": "Compliance manager works with cloud application",
+    "ns:textName": "BA01 Malicious Insider In Cloud Infrastructure",
+    "ns:textReviewSolution": "Define Cost of Incident metrics;",
+    "ns:textURL": "",
+    "ns:textReviewProblem": "Malicious insider in cloud infrastructure causes security issues of cloud application",
+    "ns:textReference": "OI-1: Malicious insiders in the cloud infrastructure provider [SECCRIT]; R.10: Cloud provider malicious insider - abuse of high privilege roles [ENISA]; Cloud Provider Malicious Insider [QUIRC]; TIS.021 [BDU]; Cost of Incidents, Mean Cost of Incidents, Mean Incident Recovery Cost [Casola];"
+  },
+  "organization": {
+    "ns:usesPattern": [],
+    "ns:hasGroup": [],
+    "ns:hasType": ["ns:type_ThreatPattern"],
+    "ns:hasTemplate": [],
+    "ns:relatesTo": [],
+    "ns:isChildOf": []
+  },
+  "common": {
+    "ns:hasArchitecturalLayer": [],
+    "ns:hasResponseType": [],
+    "ns:hasDomain": [],
+    "ns:hasSecurityLevel": [],
+    "ns:hasLifecycleStage": [],
+    "ns:hasConstraintLevel": []
+  },
+  "context": {
+    "ns:hasAffectedFunction": [],
+    "ns:hasAffectedComponent": ["su:comp_CloudApplication"]
+  },
+  "security": {
+    "ns:hasThreat": [],
+    "ns:hasAggressor": ["su:comp_ComplianceManager"],
+    "ns:hasAggressorRole": ["ns:role_Client"],
+    "ns:hasWeakness": [],
+    "ns:hasSTRIDE": [],
+    "ns:hasSecurityConcern": []
+  }
+}

@@ -1,0 +1,157 @@
+<?xml version='1.0' encoding='utf-8'?>
+<spartamodel:ThreatTypeCatalog xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:spartamodel="http://distrinet.cs.kuleuven.be/spartamodel">
+  <threat xsi:type="spartamodel:ThreatType" name="Failure Of Remote Service">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Connection Lost To Remote Service">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Data Breach By Remote Service">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Data Loss By Remote Service">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Spoofing Of Remote Service">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Failure Of Cloud Application">
+    <patterns key="ProcessToExternalEntity" value="true" />
+    <patterns key="ProcessToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Connection Lost To Cloud Application">
+    <patterns key="ProcessToExternalEntity" value="true" />
+    <patterns key="ProcessToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Malware From Cloud Application">
+    <patterns key="ProcessToExternalEntity" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Public Network Access To Cloud Application">
+    <patterns key="ProcessToExternalEntity" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Social Engineering Against Remote User">
+    <patterns key="ProcessToExternalEntity" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Broken Authentication">
+    <patterns key="ExternalEntityToProcess" value="true" />
+    <patterns key="ProcessToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Broken Access Control">
+    <patterns key="ExternalEntityToProcess" value="true" />
+    <patterns key="ProcessToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Data Breach By Cloud Application">
+    <patterns key="ExternalEntityToProcess" value="true" />
+    <patterns key="ProcessToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Data Loss By Cloud Application">
+    <patterns key="ExternalEntityToProcess" value="true" />
+    <patterns key="ProcessToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Backup Of Cloud Application Lost">
+    <patterns key="ExternalEntityToProcess" value="true" />
+    <patterns key="ProcessToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Backup Of Cloud Application Stolen">
+    <patterns key="ExternalEntityToProcess" value="true" />
+    <patterns key="ProcessToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Logs Of Cloud Application Lost">
+    <patterns key="ExternalEntityToProcess" value="true" />
+    <patterns key="ProcessToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Logs Of Cloud Application Stolen">
+    <patterns key="ExternalEntityToProcess" value="true" />
+    <patterns key="ProcessToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="DDoS Attack To Cloud Application">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="EDoS Attack To Cloud Application">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Network Attacks To Cloud Application">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Cloud Application Abuse">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Block Shared Resources Of Cloud Application">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Disclosure Of Credentials Of Cloud Management Interface">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Malicious Insider In Cloud Infrastructure">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Lack Of Reserved Resources For Cloud Application">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Failure Of Resource Scaling For Cloud Application">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Hidden Dependencies Of Cloud Infrastructure">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Lack Of Resource Isolation Of Cloud Application">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Loss Of Security Control">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Poor Information Security Processes">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Audit And Certification Issues">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Security Issues Of SLA">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Service Provider Lock-In">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Software License Issues">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Confiscation Of Computer Hardware">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Restrictions Of Forensic Readiness">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Physical Access Or Theft Of Computer Equipment">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Destruction Of Data Center">
+    <patterns key="ExternalEntityToProcess" value="true" />
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" name="Priviledge Escalation" />
+  <threat xsi:type="spartamodel:ThreatType" name="Remote Code Execution" />
+  <threat xsi:type="spartamodel:ThreatType" name="Network Scanning" />
+  <threat xsi:type="spartamodel:ThreatType" name="VM Escape" />
+  <threat xsi:type="spartamodel:ThreatType" name="Cross-VM Side Channel" />
+  <threat xsi:type="spartamodel:ThreatType" name="Hypervisor Vulnerabilities" />
+  <threat xsi:type="spartamodel:ThreatType" name="Unsafe VM Migration" />
+  <threat xsi:type="spartamodel:ThreatType" name="Rogue VM Image In Repository" />
+  <threat xsi:type="spartamodel:ThreatType" name="Outdated VM Image In Repository" />
+  <threat xsi:type="spartamodel:ThreatType" name="Lack Of Network Isolation" />
+  <threat xsi:type="spartamodel:ThreatType" name="Unsafe VM Snapshots" />
+  <threat xsi:type="spartamodel:ThreatType" name="Host storage use" />
+  <threat xsi:type="spartamodel:ThreatType" name="Use of Container Socket" />
+  <threat xsi:type="spartamodel:ThreatType" name="Write Access to Volume" />
+  <threat xsi:type="spartamodel:ThreatType" name="Data Leak at Storage" />
+  <threat xsi:type="spartamodel:ThreatType" name="Data Corruption at Storage" />
+  <threat xsi:type="spartamodel:ThreatType" name="Use container management tools" />
+  <threat xsi:type="spartamodel:ThreatType" name="Container Escape" />
+  <threat xsi:type="spartamodel:ThreatType" name="Container Privilege Escalation" />
+  <threat xsi:type="spartamodel:ThreatType" name="Compromised Access Token" />
+  <threat xsi:type="spartamodel:ThreatType" name="Data Leak At Transfer" />
+  <threat xsi:type="spartamodel:ThreatType" name="Data Corruption At Transfer" />
+  <threat xsi:type="spartamodel:ThreatType" name="Channel Destroyed" />
+  <threat xsi:type="spartamodel:ThreatType" name="Access to container management interface" />
+  <threat xsi:type="spartamodel:ThreatType" name="Exploit Published Network Application" />
+  <threat xsi:type="spartamodel:ThreatType" name="Deploy Malicious Container" />
+  <threat xsi:type="spartamodel:ThreatType" name="Container Discovery" />
+</spartamodel:ThreatTypeCatalog>

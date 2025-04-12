@@ -1,0 +1,68 @@
+processes:
+  - group_name: VirtualMachine
+    annotation: VirtualMachine 
+    members:
+      - name: AzureVM
+        tf_name: azurerm((_linux)|(_windows))?_virtual_machine\w*
+        compress: true
+        can_public: true
+      - name: Bastion
+        tf_name: azurerm_bastion_host
+        can_public: true
+  - group_name: ServerlessFunction
+    annotation: CloudApplication
+    members:
+      - name: AzureFunctionApp
+        tf_name: azurerm((_linux)|(_windows))?_function_app\w*
+        compress: true
+          # - group_name: StorageManager
+          #   annotation: CloudApplication
+          #   members:
+          #     - name: StorageContainer
+          #       tf_name: azurerm_storage_container\w*
+          #       compress: true
+
+  # - group_name: VirtualFirewall
+  #   annotation: CloudApplication 
+  #   members:
+  #     - name: SecurityGroup
+  #       tf_name: azurerm_network_security_group
+  #       can_public: true
+  #       
+  - group_name: IAM
+    annotation: CloudApplication
+    members:
+      - name: AzureRole
+        tf_name: azurerm_role_\w*
+        compress: true
+        can_public: true
+
+boundaries:
+  - group_name: VirtualNetwork
+    members:
+      - name: VirtualNetwork
+        tf_name: azurerm_virtual_network
+
+  - group_name: Subnet
+    members:
+      - name: Subnet
+        tf_name: azurerm_subnet
+
+data_stores:
+  - group_name: FileStorage
+    members:
+      - name: Storage
+        tf_name: azurerm_storage\w*
+        compress: true
+  - group_name: Database
+    members:
+      - name: CosmosDB
+        tf_name: azurerm_cosmosdb\w*
+        compress: true
+      - name: MySQL
+        tf_name: azurerm_mysql\w*
+        compress: true
+
+external_entities:
+  - name: User
+    annotation: RemoteUser

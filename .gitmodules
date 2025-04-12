@@ -1,0 +1,12 @@
+[submodule "sample/KaiMonkey/Source/KaiMonkey"]
+	path = sample/KaiMonkey/Source/KaiMonkey
+	url = https://github.com/tenable/KaiMonkey
+	ignore = dirty
+[submodule "sample/terraform-example/Source/terraform-example"]
+	path = sample/terraform-example/Source/terraform-example
+	url = https://github.com/futurice/terraform-examples
+	ignore = dirty
+[submodule "sample/AWSGoat/Source/AWSGoat"]
+	path = sample/AWSGoat/Source/AWSGoat
+	url = https://github.com/ine-labs/AWSGoat
+	ignore = dirty

@@ -1,0 +1,2 @@
+# out1
+python3 ./main.py --reinit=True ./sample/terraform-example/Source/terraform-example/aws/aws_vpc_msk --graph_mode=True 

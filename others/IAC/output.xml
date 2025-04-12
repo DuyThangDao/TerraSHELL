@@ -1,0 +1,1535 @@
+<?xml version="1.0" encoding="UTF-8"?>
+    <spartamodel:ThreatTypeCatalog xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:spartamodel="http://distrinet.cs.kuleuven.be/spartamodel" name="IaC Threat Type">
+    <imports>import &quot;http://distrinet.cs.kuleuven.be/spartamodel&quot;</imports>
+
+  <threat xsi:type="spartamodel:ThreatType" xmi:id="_yLuhMQhqEe-YhNbZHGKbbw" name="Unauthorized Modification of the Data Stores" description="Other resource can temper the data at the data store unauthorizedly/unintentionally">
+    <patterns xmi:id="_yLuhMghqEe-YhNbZHGKbbw" key="ProcessToDataStore" value="true"/>
+    <patterns xmi:id="_yLuhMwhqEe-YhNbZHGKbbw" key="ExternalEntityToDataStore" value="true"/>
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" xmi:id="_yLuhNAhqEe-YhNbZHGKbbw" name="Sensitive Data Leakage" description="Unintentionally exposes sensitive, protected, or confidential information outside its intended environment ">
+    <patterns xmi:id="_yLuhNQhqEe-YhNbZHGKbbw" key="ProcessToDataStore" value="true"/>
+    <patterns xmi:id="_yLuhNghqEe-YhNbZHGKbbw" key="ExternalEntityToDataStore" value="true"/>
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" xmi:id="_yLuhNwhqEe-YhNbZHGKbbw" name="Denial of Service against a Data Store" description="Violating the availability of the datastore">
+    <patterns xmi:id="_yLuhOAhqEe-YhNbZHGKbbw" key="ProcessToDataStore" value="true"/>
+    <patterns xmi:id="_yLuhOQhqEe-YhNbZHGKbbw" key="ExternalEntityToDataStore" value="true"/>
+  </threat>
+  <threat xsi:type="spartamodel:ThreatType" xmi:id="_yLuhOghqEe-YhNbZHGKbbw" name="Attacking the Logs" description="Attacking (reading, tamperinng, etc.) the database (log files) to perform repudiation">
+    <patterns xmi:id="_yLuhOwhqEe-YhNbZHGKbbw" key="ProcessToDataStore" value="true"/>
+    <patterns xmi:id="_yLuhPAhqEe-YhNbZHGKbbw" key="ExternalEntityToDataStore" value="true"/>
+  </threat>
+    
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Network Attacks To Cloud Application" description="Remote side can perform remote malicious activities based on misconfiguration or vulnerabilities of the cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_1(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Cloud Application Abuse" description="Malicious usage (abuse) of cloud application from the Internet (e.g. sending spam, participating botnet, mining) after gain control on it">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_2(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Malicious Insider In Cloud Infrastructure" description="Malicious insider in cloud infrastructure causes security issues of cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_3(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Loss Of Security Control" description="Loss of visibility and control of security and privacy of cloud application (partially controlled)">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_4(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Poor Information Security Processes" description="Poor information security processes of cloud provider (design, implementation and operations)">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_5(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Audit And Certification Issues" description="Audit and certification of cloud applications and infrastructure are inaccessible or restricted">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_6(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Security Issues Of SLA" description="Incorrect or unclear information security section of SLA">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_7(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Service Provider Lock-In" description="Service provider lock-in">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_8(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Software License Issues" description="Software license issues">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_9(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Restrictions Of Forensic Readiness" description="Restrictions of forensic readiness for cloud applications (e.g. access to low-level logs and background data, disclosure of client context)">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_10(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Destruction Of Data Center" description="Natural disasters destroy data centre or cloud infrastructure (Force Majeure)">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_11(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: VM Escape" description="VM suffers from process that escaped from another VM (VM Escape)">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_12(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;VirtualMachine&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Cross-VM Side Channel" description="VM suffers from a Cross-VM side channel attack">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_13(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;VirtualMachine&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Hypervisor Vulnerabilities" description="VM suffers from vulnerabilities of hypervisor">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_14(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;VirtualMachine&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Rogue VM Image In Repository" description="Uncontrolled placement of VM images (possibly with malicious content) in repository">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_15(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;VirtualMachine&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Outdated VM Image In Repository" description="Use of an outdated image for VM from repository">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_16(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;VirtualMachine&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Lack Of Network Isolation" description="Security issues of VM networking, caused by lack of network isolation">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_17(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;VirtualMachine&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Unsafe VM Snapshots" description="Security issues, related to management of VM snapshots">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_18(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;VirtualMachine&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Host storage use" description="The use of host storage is not recommended for production environments">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_19(ee: Process, p: DataStore, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;HostStorage&quot;);
+                DataStore.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;Container&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Use of Container Socket" description="The use of container socket (a raw management interface) is not recommended">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_20(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;ContainerSocket&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;Container&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Write Access to Volume" description="Use of a volume in read-write mode when only the read access required (configuration, permanent data)">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_21(ee: Process, p: DataStore, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;ContainerVolume&quot;);
+                DataStore.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;Container&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Data Leak at Storage" description="Data may be stolen from volume or host storage">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_22(ee: Process, p: DataStore, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;ContainerVolume&quot;);
+                DataStore.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;Container&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Data Corruption at Storage" description="Data may be corrupted being on volume or host storage">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_23(ee: Process, p: DataStore, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;ContainerVolume&quot;);
+                DataStore.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;Container&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Use container management tools" description="Container management tools (API, CLI) can be illegally used to compromise a container.">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_24(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;Container&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;Container&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Container Escape" description="Compromised container can be used to get access to a host where the container has been run.">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_25(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;Container&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;Container&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Container Privilege Escalation" description="Escalation of privileges within a container.">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_26(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;Container&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;Container&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Compromised Access Token" description="Access Tokens (other credentials) used to authenticate a container can be compromised.">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_27(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;Container&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;Container&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Data Leak At Transfer" description="Containers use channels (virtual networks) to communicate each other as well as interact with remote users">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_28(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;Container&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;Container&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Data Corruption At Transfer" description="Containers use channels (virtual networks) to communicate each other as well as interact with remote users">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_29(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;Container&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;Container&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Channel Destroyed" description="Containers use channels (virtual networks) to communicate each other as well as interact with remote users">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_30(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;Container&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;Container&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Access to container management interface" description="Remote user can get access to container management interface (Web, CLI)">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_31(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;Container&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Exploit Published Network Application" description="Open network port can be exploited in order to compromise container instance.">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_32(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;Container&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Deploy Malicious Container" description="A container management system can be used to deploy containers that include malicious software.">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_33(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;Container&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Other: Container Discovery" description="Available containers and other resources can be discovered.">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_34(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;Container&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Denial of Service: Failure Of Remote Service" description="Unexpected failure of the remote service">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_35(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ExternalService&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Denial of Service: Connection Lost To Remote Service" description="Connection lost to the remote service">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_36(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ExternalService&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Denial of Service: Failure Of Cloud Application" description="Unexpected failure of the cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_37(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Denial of Service: Connection Lost To Cloud Application" description="Connection lost to the cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_38(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Denial of Service: Backup Of Cloud Application Lost" description="Lost of cloud application backup">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_39(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Denial of Service: DDoS Attack To Cloud Application" description="DDoS/DoS attack against cloud application from the Internet">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_40(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Denial of Service: EDoS Attack To Cloud Application" description="EDoS (Economic Denial of Sustainability or Economic Denial of Service) attack against cloud application from the Internet">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_41(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Denial of Service: Block Shared Resources Of Cloud Application" description="Blocking shared resources of cloud application (e.g. shared external IP) by a third-part reputation service">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_42(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Denial of Service: Lack Of Reserved Resources For Cloud Application" description="Lack of reserved resources for cloud application because of overload of cloud infrastructure">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_43(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Denial of Service: Failure Of Resource Scaling For Cloud Application" description="Unexpected failure of resource scaling for cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_44(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Denial of Service: Hidden Dependencies Of Cloud Infrastructure" description="Hidden dependencies between components of cloud application and cloud infrastructure cause security issues of cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_45(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Denial of Service: Confiscation Of Computer Hardware" description="Confiscation of computer hardware of cloud provider as a result of subpoena by law-enforcement agencies">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_46(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Data Breach By Remote Service" description="Data breach (information disclosure) by the remote service">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_47(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ExternalService&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Malware From Cloud Application" description="Malicious content (malware) from the cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_48(ee: Process, p: ExternalEntity, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Public Network Access To Cloud Application" description="Remote user connects to the cloud application though a public network (e.g. Wi-Fi) and can be attacked by a third-party adversary">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_49(ee: Process, p: ExternalEntity, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Social Engineering Against Remote User" description="Remote user suffers from Social Engineering attacks, performed by third-party adversary (e.g. including the cloud application into phishing schema)">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_50(ee: Process, p: ExternalEntity, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Data Breach By Cloud Application" description="Data breach (information disclosure) by the cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_51(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Backup Of Cloud Application Stolen" description="Disclosure of cloud application backups">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_52(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Logs Of Cloud Application Stolen" description="Disclosure of sensitive information from cloud application logs">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_53(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Disclosure Of Credentials Of Cloud Management Interface" description="Disclosure of user credentials of management interface of cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_54(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Lack Of Resource Isolation Of Cloud Application" description="Lack of data, code, network isolation of cloud applications caused by misconfigurations and vulnerabilities of cloud infrastructure">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_55(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Confiscation Of Computer Hardware" description="Confiscation of computer hardware of cloud provider as a result of subpoena by law-enforcement agencies">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_56(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Physical Access Or Theft Of Computer Equipment" description="Unauthorized access or theft of computer equipment from data centre">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_57(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Network Scanning" description="Network and port scanning, service and version detection of VM from Internet">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_58(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;VirtualMachine&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Information Disclosure: Unsafe VM Migration" description="Loss or disclosure of information during VM migration">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_59(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;VirtualMachine&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Tampering: Data Loss By Remote Service" description="Data loss (modification) by the remote service">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_60(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ExternalService&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Tampering: Malware From Cloud Application" description="Malicious content (malware) from the cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_61(ee: Process, p: ExternalEntity, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Tampering: Public Network Access To Cloud Application" description="Remote user connects to the cloud application though a public network (e.g. Wi-Fi) and can be attacked by a third-party adversary">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_62(ee: Process, p: ExternalEntity, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Tampering: Data Loss By Cloud Application" description="Data loss (modification) by the cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_63(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Tampering: Lack Of Resource Isolation Of Cloud Application" description="Lack of data, code, network isolation of cloud applications caused by misconfigurations and vulnerabilities of cloud infrastructure">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_64(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Tampering: Remote Code Execution" description="Remote code execution against network applications and services from Internet">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_65(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;VirtualMachine&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Tampering: Unsafe VM Migration" description="Loss or disclosure of information during VM migration">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_66(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;VirtualMachine&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ComplianceManager&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Elevation of Privilege: Broken Access Control" description="No access control, broken (weak) access control, and the authorization issues of the cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_67(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Elevation of Privilege: Priviledge Escalation" description="System services and applications suffer from privilege escalation">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_68(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;VirtualMachine&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Spoofing: Spoofing Of Remote Service" description="Spoofing of the remote service">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_69(ee: ExternalEntity, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;ExternalService&quot;);
+                ExternalEntity.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Spoofing: Social Engineering Against Remote User" description="Remote user suffers from Social Engineering attacks, performed by third-party adversary (e.g. including the cloud application into phishing schema)">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_70(ee: Process, p: ExternalEntity, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;RemoteUser&quot;);
+                ExternalEntity.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Spoofing: Broken Authentication" description="No authentication or broken (weak) authentication by the cloud application">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_71(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    <threat xsi:type="spartamodel:ThreatType" name="Repudiation: Logs Of Cloud Application Lost" description="Lost of cloud application logs">
+    
+        <threatpattern name="" description="">
+            <patterns>pattern Pattern_72(ee: Process, p: Process, df:DataFlow ) { 
+                ModelElementAnnotation(a1);
+                ModelElementAnnotation.value(a1, &quot;CloudApplication&quot;);
+                Process.annotations(p, a1);
+
+                ModelElementAnnotation(a2);
+                ModelElementAnnotation.value(a2, &quot;CloudApplication&quot;);
+                Process.annotations(ee, a2);
+
+                DataFlow.sender(df, ee);
+                DataFlow.recipient(df, p);
+            }</patterns>
+            <mapping key="location" value="p"/>
+            <mapping key="flow" value="df"/>
+        </threatpattern>
+
+    </threat>
+
+    </spartamodel:ThreatTypeCatalog>
+

@@ -1,0 +1,1 @@
+python3 ./main.py --reinit=True ./sample/azure-vm-blob/Source/ --graph_mode=True --anno-path=./input/azure_annotation.yaml --rule-path=./input/azure_rule.yaml

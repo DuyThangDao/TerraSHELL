@@ -1,0 +1,1 @@
+from .tf2graph import GetJSON

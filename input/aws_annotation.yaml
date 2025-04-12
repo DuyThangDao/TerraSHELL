@@ -1,0 +1,185 @@
+processes:
+  - group_name: VirtualMachine
+    annotation: VirtualMachine 
+    members:
+      - name: EC2
+        tf_name: aws_instance
+        compress: true
+
+  - group_name: ServerlessFunction
+    annotation: CloudApplication 
+    members:
+      - name: AwsLambda
+        tf_name: aws_lambda_\w*
+        compress: true
+        can_public: true
+
+  - group_name: WebApplication
+    annotation: CloudApplication 
+    members:
+      - name: AwsAmplify
+        tf_name: aws_amplify_\w*
+        compress: true
+  
+  - group_name: Authenticator
+    annotation: CloudApplication 
+    members:
+      - name: AmazonCognito
+        tf_name: aws_cognito_\w*
+        compress: true
+  
+  - group_name: LoadBalancer
+    annotation: CloudApplication 
+    members:
+      - name: APIGateway
+        tf_name: aws_api_gateway_\w*
+        compress: true
+        can_public: true
+      - name: APIGateway
+        tf_name: aws_apigatewayv2_\w*
+        compress: true
+        can_public: true
+      - name: ALB
+        tf_name: aws_lb\w*
+        compress: true
+
+
+  - group_name: VirtualFirewall
+    annotation: CloudApplication 
+    members:
+      - name: SecurityGroup
+        tf_name: aws_security_group\w*
+        compress: true
+        can_public: true
+
+  - group_name: IAM
+    annotation: CloudApplication 
+    members:
+      - name: IAM
+        tf_name: aws_iam_\w*
+        compress: true
+        can_public: true
+    
+  - group_name: EmailService
+    annotation: CloudApplication 
+    members:
+      - name: AmazonSES
+        tf_name: aws_ses_\w*
+        compress: true
+        # can_public: true
+  - group_name: ServerlessOrchestration
+    annotation: CloudApplication
+    members:
+      - name: GlueCatalog
+        tf_name: aws_glue_catalog\w*
+        compress: true
+      - name: GlueCrawler
+        tf_name: aws_glue_crawler\w*
+        compress: true
+      - name: GlueJob
+        tf_name: aws_glue_((job)|(trigger)|(workflow)|(connection)) 
+        compress: true
+      - name: StepFunction
+        tf_name: aws_sfn_\w*
+        compress: true
+
+  - group_name: DNS
+    annotation: CloudApplication
+    members:
+      - name: Route53
+        tf_name: aws_route53_\w*
+        compress: true
+  - group_name: IOTCore
+    annotation: CloudApplication
+    members:
+      - name: AWSIOT
+        tf_name: aws_iot_\w*
+        compress: true
+  - group_name: WebFirewall
+    annotation: CloudApplication
+    members:
+      - name: AWSWAF
+        tf_name: aws_wafv2_\w*
+        compress: true
+  - group_name: KubernetesCluster
+    annotation: Container
+    members:
+      - name: EKS
+        tf_name: aws_eks_\w*
+        compress: true
+
+  - group_name: NotificationService
+    annotation: CloudApplication
+    members:
+      - name: SNS
+        tf_name: aws_sns_topic\w*
+        compress: true
+
+  - group_name: MessageQueuing
+    annotation: CloudApplication
+    members:
+      - name: SQS
+        tf_name: aws_sqs_queue\w*
+        compress: true
+  
+  
+boundaries:
+  - group_name: VirtualNetwork
+    members:
+      - name: AwsVPC
+        tf_name: aws_vpc
+
+  - group_name: Subnet
+    members:
+      - name: Subnet
+        tf_name: aws_subnet
+
+data_stores:
+  - group_name: FileStorage
+    members:
+      - name: S3
+        tf_name: aws_s3_bucket\w*
+        compress: true
+        can_public: true
+        
+  - group_name: Database
+    members:
+      - name: DynamoDB
+        tf_name: aws_dynamodb_table
+      - name: RDS
+        tf_name: aws_((db_instance)|(rds_cluster))
+        compress: true
+  - group_name: SecretStorage
+    members:
+      - name: KMS
+        tf_name: aws_kms_\w*
+        compress: true
+      - name: CertManager
+        tf_name: aws_acm_certificate\w*
+        compress: true
+      - name: SSMParameter
+        tf_name: aws_ssm_parameter
+
+  - group_name: Cache
+    members:
+      - name: ElastiCache
+        tf_name: aws_elasticache\w*
+        compress: true
+
+  - group_name: DataWarehouse
+    members:
+      - name: Redshift
+        tf_name: aws_redshift\w*
+        compress: true
+
+  # - group_name: AuditLog
+  #   members:
+  #     - name: AWSConfig
+  #       tf_name: aws_config_\w*
+  #       compress: true
+
+external_entities:
+  - name: User
+    annotation: RemoteUser
+  # - name: Mobile
+  #   annotation: ExternalService

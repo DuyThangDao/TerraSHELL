@@ -1,0 +1,21 @@
+{
+  "name": "shishodojo_crl",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.40.1"
+  },
+  "dependencies": {
+    "csv": "^6.3.6",
+    "csv-stringify": "^6.4.5",
+    "playwright-core": "^1.40.1",
+    "progress": "^2.0.3"
+  }
+}

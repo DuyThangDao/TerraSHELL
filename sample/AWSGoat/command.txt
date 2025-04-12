@@ -1,0 +1,4 @@
+# module-1
+python3 ./main.py --reinit=True ./sample/AWSGoat/Source/AWSGoat/modules/module-2 --graph_mode=True
+# module-2
+python3 ./main.py --reinit=True ./sample/AWSGoat/Source/AWSGoat/modules/module-2 --graph_mode=True

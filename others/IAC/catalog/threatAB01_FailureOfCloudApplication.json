@@ -1,0 +1,39 @@
+{
+  "id": "threatAB01_FailureOfCloudApplication",
+  "metadata": {
+    "ns:textReviewContext": "Someone interacts with a cloud application",
+    "ns:textName": "AB01 Failure Of Cloud Application",
+    "ns:textReviewSolution": "Ensure fault tolerance of the cloud infrastructure; Apply automatic recovery of the cloud application; Apply autoscaling of the cloud application; Apply clustrer-like configuration of the cloud application (failover and load balancing);",
+    "ns:textURL": "",
+    "ns:textReviewProblem": "Unexpected failure of the cloud application",
+    "ns:textReference": "TIS.043, TIS.142 [BDU]"
+  },
+  "organization": {
+    "ns:usesPattern": [],
+    "ns:hasGroup": [],
+    "ns:hasType": ["ns:type_ThreatPattern"],
+    "ns:hasTemplate": [],
+    "ns:relatesTo": [],
+    "ns:isChildOf": []
+  },
+  "common": {
+    "ns:hasArchitecturalLayer": [],
+    "ns:hasResponseType": [],
+    "ns:hasDomain": [],
+    "ns:hasSecurityLevel": [],
+    "ns:hasLifecycleStage": [],
+    "ns:hasConstraintLevel": []
+  },
+  "context": {
+    "ns:hasAffectedFunction": [],
+    "ns:hasAffectedComponent": ["su:comp_CloudApplication", "su:comp_RemoteUser", "su:comp_ExternalService" ]
+  },
+  "security": {
+    "ns:hasThreat": ["ns:threat_txTargetedProcessCrashing", "ns:threat_txResourceExhaustion"],
+    "ns:hasAggressor": ["su:comp_CloudApplication"],
+    "ns:hasAggressorRole": ["ns:role_Server"],
+    "ns:hasWeakness": [],
+    "ns:hasSTRIDE": ["ns:STRIDE_Denial_of_Service"],
+    "ns:hasSecurityConcern": []
+  }
+}

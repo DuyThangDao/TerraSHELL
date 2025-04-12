@@ -1,0 +1,39 @@
+{
+  "id": "threatAD08_LogOfCloudApplicationStolen",
+  "metadata": {
+    "ns:textReviewContext": "Someone interacts with a cloud application",
+    "ns:textName": "AD08 Logs Of Cloud Application Stolen",
+    "ns:textReviewSolution": "Avoid storing of sensitive data in logs; Apply logs encryption; Ensure strong encryption algorithms for logs;",
+    "ns:textURL": "",
+    "ns:textReviewProblem": "Disclosure of sensitive information from cloud application logs",
+    "ns:textReference": "R30, R.31 Lost or compromise of operational or security logs [ENISA]"
+  },
+  "organization": {
+    "ns:usesPattern": [],
+    "ns:hasGroup": [],
+    "ns:hasType": ["ns:type_ThreatPattern"],
+    "ns:hasTemplate": [],
+    "ns:relatesTo": [],
+    "ns:isChildOf": []
+  },
+  "common": {
+    "ns:hasArchitecturalLayer": [],
+    "ns:hasResponseType": [],
+    "ns:hasDomain": [],
+    "ns:hasSecurityLevel": [],
+    "ns:hasLifecycleStage": [],
+    "ns:hasConstraintLevel": []
+  },
+  "context": {
+    "ns:hasAffectedFunction": [],
+    "ns:hasAffectedComponent": ["su:comp_CloudApplication"]
+  },
+  "security": {
+    "ns:hasThreat": [],
+    "ns:hasAggressor": ["su:comp_CloudApplication", "su:comp_ExternalService", "su:comp_RemoteUser"],
+    "ns:hasAggressorRole": ["ns:role_Client"],
+    "ns:hasWeakness": [],
+    "ns:hasSTRIDE": ["ns:STRIDE_Information_Disclosure"],
+    "ns:hasSecurityConcern": []
+  }
+}
