@@ -1,5 +1,5 @@
 import logging
-from typing import List, Mapping
+from typing import List, Mapping, Dict, Any
 from neo4j import GraphDatabase
 import os
 
@@ -60,6 +60,129 @@ def CreateNode(labels: List[str], values: Mapping[str, str]) -> int:
     )
     
     return records[0]["id"]
+
+def CreateNodeWithProperties(labels: List[str], properties: Dict[str, Any], pathID: str) -> int:
+    """Create or Merge Node in Memgraph with arbitrary properties (prevents duplicates)
+    
+    Args:
+        labels: List of labels for the node (pathID will be prepended, max 2 labels total)
+        properties: Dictionary of properties to set on the node
+        pathID: Path ID to use as first label
+        
+    Returns:
+        Node ID (existing or newly created)
+    """
+    # Ensure pathID is first label, take first additional label if any
+    label2 = labels[0] if labels and labels[0] != pathID else labels[1] if len(labels) > 1 else pathID
+    
+    # Use 'name' property as unique identifier for Variables/Locals to prevent duplicates
+    if 'name' in properties:
+        # First, try to find existing node with same labels and name
+        # Use backticks for labels that might contain special characters
+        check_query = f"""
+        MATCH (u:`{pathID}`:`{label2}`)
+        WHERE u.name = $name
+        RETURN ID(u) as id
+        LIMIT 1
+        """
+        
+        check_params = {
+            "name": properties['name']
+        }
+        
+        try:
+            records, _, _ = INSTANCE.execute_query(
+                check_query,
+                parameters_=check_params,
+                database_="memgraph"
+            )
+            
+            if records and len(records) > 0:
+                # Node exists, update it and return existing ID
+                existing_id = records[0]["id"]
+                UpdateNodeProperties(existing_id, properties, pathID)
+                logger.debug(f"Found existing node with name '{properties['name']}', ID: {existing_id}")
+                return existing_id
+        except Exception as e:
+            logger.warning(f"Error checking for existing node: {e}, will create new node")
+    
+    # Node doesn't exist, create new one
+    # Build property string dynamically
+    params = {
+        "l1": pathID,
+        "l2": label2
+    }
+    
+    # Add properties
+    prop_dict_parts = []
+    for key, value in properties.items():
+        # Sanitize key for parameter name (Cypher property names can contain dots)
+        safe_key = key.replace(' ', '_')
+        param_key = f"p_{safe_key}"
+        
+        # Convert value to string if needed, handle None
+        if value is None:
+            prop_dict_parts.append(f"`{key}`: null")
+        elif isinstance(value, (str, int, float, bool)):
+            params[param_key] = value
+            prop_dict_parts.append(f"`{key}`: ${param_key}")
+        else:
+            # For complex types, convert to string
+            params[param_key] = str(value)
+            prop_dict_parts.append(f"`{key}`: ${param_key}")
+    
+    props_str = ", ".join(prop_dict_parts) if prop_dict_parts else ""
+    
+    # Create new node
+    if props_str:
+        query = "CREATE (u:$l1:$l2 {" + props_str + "}) RETURN ID(u) as id"
+    else:
+        query = "CREATE (u:$l1:$l2) RETURN ID(u) as id"
+    
+    records, _, _ = INSTANCE.execute_query(
+        query,
+        parameters_=params,
+        database_="memgraph"
+    )
+    
+    return records[0]["id"]
+
+def UpdateNodeProperties(node_id: int, properties: Dict[str, Any], pathID: str):
+    """Update properties of an existing node
+    
+    Args:
+        node_id: ID of the node to update
+        properties: Dictionary of properties to add/update
+        pathID: Path ID for query context
+    """
+    if not properties:
+        return
+    
+    # Build SET clause
+    set_parts = []
+    params = {"node_id": node_id}
+    
+    for key, value in properties.items():
+        if value is None:
+            set_parts.append(f"u.{key} = null")
+        elif isinstance(value, (str, int, float, bool)):
+            param_key = f"p_{key}"
+            params[param_key] = value
+            set_parts.append(f"u.{key} = ${param_key}")
+        else:
+            param_key = f"p_{key}"
+            params[param_key] = str(value)
+            set_parts.append(f"u.{key} = ${param_key}")
+    
+    if set_parts:
+        set_clause = ", ".join(set_parts)
+        query = f"MATCH (u) WHERE ID(u) = $node_id SET {set_clause}"
+        
+        INSTANCE.execute_query(
+            query,
+            parameters_=params,
+            database_="memgraph"
+        )
 
 def FindNodeRegex(regexName: str, parentID: str, pathID: str) -> List[int]:
     records, _, _ = INSTANCE.execute_query(
