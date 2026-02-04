@@ -202,7 +202,7 @@ def TaggingNode(regexName: str, pathID: str, group: str, name: str, tag:str="pro
     records, _, _ = INSTANCE.execute_query(
         """
         MATCH (u:$id:resource)
-        WHERE u.type =~ $regex
+        WHERE (u.type =~ $regex OR u.resource_type =~ $regex)
         SET u:tagged
         SET u:$tag
         SET u.group = $group
@@ -464,20 +464,35 @@ def LinkTagged(pathID: str):
     database_="memgraph"
     )
     # And cleanup
+    # #region agent log
+    import json
+    log_path = "/home/thangdd/repos/TerrARA/.cursor/debug.log"
+    def debug_log(location, message, data, hypothesis_id):
+        with open(log_path, "a") as f:
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "run1", "hypothesisId": hypothesis_id, "location": location, "message": message, "data": data, "timestamp": int(__import__("time").time() * 1000)}) + "\n")
+    deleted_before, _, _ = INSTANCE.execute_query(f"MATCH (u:`{pathID}`) -[rel:REF]-> (v:`{pathID}:tagged:resource`) WHERE not (u:tagged) AND rel.method = 'implicit_exact_match' RETURN count(rel) as cnt", database_="memgraph")
+    debug_log("n4j_helper.py:467", "REF edges to be deleted (outgoing)", {"count": deleted_before[0]["cnt"] if deleted_before else 0}, "A")
+    # #endregion
+    
     _, _, _ = INSTANCE.execute_query(
     """
     MATCH (u:$id) -[rel]-> (v:$id:tagged:resource)
-    WHERE not (u:tagged)
+    WHERE not (u:tagged) AND rel.method IS NULL
     DELETE rel
     """,
     id=pathID,
     database_="memgraph"
     )
 
+    # #region agent log
+    deleted_before2, _, _ = INSTANCE.execute_query(f"MATCH (u:`{pathID}`) <-[rel:REF]- (v:`{pathID}:tagged:resource`) WHERE not (u:tagged) AND rel.method = 'implicit_exact_match' RETURN count(rel) as cnt", database_="memgraph")
+    debug_log("n4j_helper.py:477", "REF edges to be deleted (incoming)", {"count": deleted_before2[0]["cnt"] if deleted_before2 else 0}, "A")
+    # #endregion
+
     _, _, _ = INSTANCE.execute_query(
     """
     MATCH (u:$id) <-[rel]- (v:$id:tagged:resource)
-    WHERE not (u:tagged)
+    WHERE not (u:tagged) AND rel.method IS NULL
     DELETE rel
     """,
     id=pathID,

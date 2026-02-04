@@ -14,6 +14,7 @@ from dfdgraph import Diagram, Process, TrustBoundary
 from tfparser.tfgrep import GetSemgrepJSON
 from utils.n4j_helper import CleanUp, Cleanup, CompressV2, FindOwn, LinkTagged, QueryAllConnectionResource, QueryOutermostBoundary, QueryTagged, RemoveNonTagged, RemovePublicBoundaries, TaggingNode, TaggingPublic
 from utils.yaml_importer import read_config
+from utils.auto_detect_public_resources import auto_detect_public_resources
 
 
 def GenerateDockerPath(folderPath: str) -> str:
@@ -58,6 +59,20 @@ def main(in_path, anno_path="./input/aws_annotation.yaml", rule_path="./input/aw
 
     # Getting path id
     pathID = LoadFromFolder(in_path, init=reinit)
+
+    # ============================================================================
+    # PHASE 1.5: IMPLICIT DEPENDENCY RESOLUTION
+    # ============================================================================
+    if os.getenv("ENABLE_IMPLICIT_RESOLVER", "true").lower() == "true":
+        from implicit import run_implicit_dependency_resolution
+        run_implicit_dependency_resolution(
+            project_path=in_path,
+            path_id=pathID,
+            enable_enrich=True,
+            enable_exact=True,
+            enable_boundary=True,
+            enable_fuzzy=True
+        )
 
     for key in anno:
         if key == "external_entities":
@@ -178,12 +193,31 @@ def main(in_path, anno_path="./input/aws_annotation.yaml", rule_path="./input/aw
             if re.fullmatch(pub, r["name"]):
                 diag.AddPublicNode(n)
 
+    # ============================================================================
+    # AUTO-DETECT PUBLIC RESOURCES: Tự động phát hiện EC2/RDS có public access
+    # ============================================================================
+    logging.info("------------ Auto-detect Public Resources ------------")
+    try:
+        auto_public_ids = auto_detect_public_resources(in_path, pathID)
+        for resource_id in auto_public_ids:
+            if resource_id in COMPONENT_ID_NODE:
+                resource_node = COMPONENT_ID_NODE[resource_id]
+                diag.AddPublicNode(resource_node)
+                logging.info(f"Auto-marked as public: {resource_node.name} (ID: {resource_id})")
+            else:
+                logging.warning(f"Resource ID {resource_id} not found in COMPONENT_ID_NODE")
+    except Exception as e:
+        logging.warning(f"Error in auto-detect public resources: {e}")
+        logging.warning("Continuing without auto-detection...")
+
     logging.info("------- Outer boundary -----")
 
     for r in QueryOutermostBoundary(pathID):
         id_ = str(r["id"])
         crafted_name = "%s (%s)" % (r["group"], r["general_name"])
-        aws.AddInnerBound(BOUNDARY_ID_NODE.get(id_))
+        # Create TrustBoundary if it doesn't exist in BOUNDARY_ID_NODE
+        boundary = BOUNDARY_ID_NODE.get(id_) if id_ in BOUNDARY_ID_NODE else TrustBoundary(id_, crafted_name)
+        aws.AddInnerBound(boundary)
         logging.info("OUTER " + crafted_name)
 
     logging.info("------- Connection -----")
