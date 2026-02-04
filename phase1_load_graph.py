@@ -43,8 +43,24 @@ def main():
     
     # Load JSON file
     print(f"\nLoading JSON file: {json_path}")
-    data = json.load(open(json_path, 'r'))
-    print(f"✓ Loaded {len(data.get('nodes', []))} nodes, {len(data.get('edges', []))} edges")
+    try:
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON file: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: Failed to read JSON file: {e}")
+        sys.exit(1)
+    
+    if data is None:
+        print("Error: JSON file is empty or contains null")
+        sys.exit(1)
+    
+    # Handle case where nodes/edges might be None in JSON
+    nodes = data.get('nodes') or []
+    edges = data.get('edges') or []
+    print(f"✓ Loaded {len(nodes)} nodes, {len(edges)} edges")
     
     # Get encoded path ID
     pathID = GetPathID(project_path)
@@ -55,7 +71,7 @@ def main():
     
     # --- CREATING NODES (ONLY FROM JSON) ---
     print("\n=== Creating Nodes from JSON ===")
-    for node in data.get("nodes", []):
+    for node in nodes:
         source = node["data"]
         
         # 1. Parse basic info from label
@@ -126,8 +142,8 @@ def main():
     # --- CREATING EDGES ---
     print("\n=== Creating Edges from JSON ===")
     edge_count = 0
-    if data.get("edges"):
-        for edge in data["edges"]:
+    if edges:
+        for edge in edges:
             source_key = edge["data"]["source"]
             target_key = edge["data"]["target"]
             

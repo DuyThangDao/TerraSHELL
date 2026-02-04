@@ -4,7 +4,7 @@
 
 set -e  # Exit on error
 
-PROJECT_DIR="/home/thangdd/repos/TerrARA/demo_tf_project"
+PROJECT_DIR="/home/thangdd/repos/TerrARA/terraform-project/test"
 SCRIPT_DIR="/home/thangdd/repos/TerrARA"
 TMP_DIR="/tmp"
 
@@ -14,7 +14,7 @@ echo "=========================================="
 echo ""
 
 # Step 1: Check prerequisites
-echo "[1/6] Checking prerequisites..."
+echo "[1/9] Checking prerequisites..."
 if ! command -v terraform &> /dev/null && ! docker ps &> /dev/null; then
     echo "Error: Terraform or Docker required"
     exit 1
@@ -30,7 +30,7 @@ echo "✓ Prerequisites OK"
 echo ""
 
 # Step 2: Initialize Terraform
-echo "[2/6] Initializing Terraform project..."
+echo "[2/9] Initializing Terraform project..."
 cd "$PROJECT_DIR"
 if [ -d ".terraform" ]; then
     echo "  Cleaning up previous initialization..."
@@ -57,7 +57,7 @@ echo "✓ Terraform initialized"
 echo ""
 
 # Step 3: Generate DOT file
-echo "[3/6] Generating dependency graph (DOT format)..."
+echo "[3/9] Generating dependency graph (DOT format)..."
 DOT_FILE="$TMP_DIR/terraform_graph_$(date +%s).dot"
 
 if command -v terraform &> /dev/null; then
@@ -79,7 +79,7 @@ echo "  File size: $(wc -l < "$DOT_FILE") lines"
 echo ""
 
 # Step 4: Convert DOT to JSON
-echo "[4/6] Converting DOT to JSON..."
+echo "[4/9] Converting DOT to JSON..."
 JSON_FILE="$TMP_DIR/terraform_graph_$(date +%s).json"
 
 docker run --rm \
@@ -101,39 +101,40 @@ echo "  Nodes: $NODE_COUNT, Edges: $EDGE_COUNT"
 echo ""
 
 # Step 5: Load into Memgraph
-echo "[5/6] Loading graph into Memgraph..."
+echo "[5/9] Loading graph into Memgraph..."
 cd "$SCRIPT_DIR"
 python3 phase1_load_graph.py "$JSON_FILE" "$PROJECT_DIR"
 echo ""
 
-# # Step 5.5: Enrich Graph with HCL Properties
-# echo "[5.5/6] Enriching graph with properties from HCL..."
-# python3 phase1_enrich_graph.py "$PROJECT_DIR"
-# echo ""
-
-# Step 6: Run Taint Analysis
-echo "[6/6] Running Taint Analysis..."
+# Step 5.5: Enrich Graph with HCL Properties (includes Taint Analysis preprocessing)
+echo "[5.5/9] Enriching graph with properties from HCL..."
 cd "$SCRIPT_DIR"
-python3 << EOF
-import sys
-import os
-sys.path.insert(0, "$SCRIPT_DIR")
-from utils.n4j_helper import GetPathID
-from implicit_dependency_resolver.taint_analysis import TaintAnalyzer
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
-
-project_path = os.path.abspath("$PROJECT_DIR")
-path_id = GetPathID(project_path)
-print(f"Running Taint Analysis for path ID: {path_id}")
-
-analyzer = TaintAnalyzer(path_id)
-analyzer.run()
-EOF
-echo "✓ Taint Analysis complete"
+python3 implicit_dependency_resolver/taint_analysis.py "$PROJECT_DIR"
 echo ""
+
+# Step 6: Run Exact Matching to create implicit dependency links
+echo "[6/9] Running Exact Matching to create implicit dependency links..."
+python3 implicit_dependency_resolver/exact_matching.py "$PROJECT_DIR"
+echo "✓ Exact Matching complete"
+echo ""
+
+# Step 7: Run Boundary-aware Substring Matching to create implicit dependency links
+echo "[7/9] Running Boundary-aware Substring Matching to create implicit dependency links..."
+python3 implicit_dependency_resolver/boundary_aware_matching.py "$PROJECT_DIR"
+echo "✓ Boundary-aware Matching complete"
+echo ""
+
+# Step 8: Run Fuzzy & Heuristic Matching to create implicit dependency links
+echo "[8/9] Running Fuzzy & Heuristic Matching to create implicit dependency links..."
+python3 implicit_dependency_resolver/fuzzy_matching.py "$PROJECT_DIR"
+echo "✓ Fuzzy & Heuristic Matching complete"
+echo ""
+
+# # Step 9: Run Ghost Node Creation to create external entity nodes
+# echo "[9/9] Running Ghost Node Creation to create external entity nodes..."
+# python3 phase1_ghost_node_creation.py "$PROJECT_DIR"
+# echo "✓ Ghost Node Creation complete"
+# echo ""
 
 echo "=========================================="
 echo "Phase 1 Complete!"

@@ -62,47 +62,66 @@ def enrich_graph(project_path):
     logger.info("--- Enriching VARIABLES ---")
     vars_updated = 0
     for var_name, data in parsed_data.get('variables', {}).items():
-        if data.get('default') is not None:
-            # Prepare value for storage (Memgraph properties must be primitives)
-            val = data['default']
-            if isinstance(val, (dict, list)):
-                val = json.dumps(val) # Use JSON string for complex types
-            
-            # Query Logic:
-            # We look for nodes belonging to this project ($pid)
-            # that are of type 'variable'.
-            # We match by 'resource_name' (preferred) or variations of 'name'.
-            query = """
-            MATCH (n)
-            WHERE ($pid IN labels(n))
-              AND (n.type = 'variable' OR 'variable' IN labels(n) OR 'Variable' IN labels(n)) OR 'var' IN labels(n) OR n.resource_type = 'var'
-              AND (
-                  n.resource_name = $name 
-                  OR n.name = $name 
-                  OR n.name = 'var.' + $name
-              )
-            SET n.default = $val, 
-                n.enriched = true,
-                n.description = $desc,
-                n.var_type = $vtype
-            RETURN count(n) as updated
-            """
-            
-            res, _, _ = INSTANCE.execute_query(
-                query, 
-                pid=path_id, 
-                name=var_name, 
-                val=val,
-                desc=data.get('description', ''),
-                vtype=data.get('type', 'string'),
-                database_="memgraph"
-            )
-            
-            if res and res[0]['updated'] > 0:
-                logger.info(f"  ✓ Updated Variable: {var_name}")
-                vars_updated += 1
-            else:
-                logger.debug(f"  - Skipped Variable {var_name} (Node not found in Graph)")
+        # Only enrich variables that have explicit default values
+        # Check explicitly: must not be None, must not be empty string, must exist in the dict
+        if 'default' not in data or data.get('default') is None:
+            logger.debug(f"  - Skipping Variable {var_name} (no default value in parsed data)")
+            continue
+        
+        default_val = data['default']
+        # Skip empty strings and empty collections
+        if default_val == '' or (isinstance(default_val, (dict, list)) and len(default_val) == 0):
+            logger.debug(f"  - Skipping Variable {var_name} (default value is empty)")
+            continue
+        
+        # Prepare value for storage (Memgraph properties must be primitives)
+        val = default_val
+        if isinstance(val, (dict, list)):
+            val = json.dumps(val) # Use JSON string for complex types
+        
+        # Query Logic:
+        # We look for nodes belonging to this project ($pid)
+        # that are of type 'variable'.
+        # We match by 'resource_name' (preferred) or variations of 'name'.
+        # FIXED: Properly group OR conditions in WHERE clause
+        query = """
+        MATCH (n)
+        WHERE ($pid IN labels(n))
+          AND (
+              n.type = 'variable' 
+              OR 'variable' IN labels(n) 
+              OR 'Variable' IN labels(n) 
+              OR 'var' IN labels(n) 
+              OR n.resource_type = 'var'
+          )
+          AND (
+              n.resource_name = $name 
+              OR n.name = $name 
+              OR n.name = 'var.' + $name
+          )
+          AND (n.default IS NULL OR n.default = '')  // Only update if not already set to avoid overwriting
+        SET n.default = $val, 
+            n.enriched = true,
+            n.description = $desc,
+            n.var_type = $vtype
+        RETURN count(n) as updated
+        """
+        
+        res, _, _ = INSTANCE.execute_query(
+            query, 
+            pid=path_id, 
+            name=var_name, 
+            val=val,
+            desc=data.get('description', ''),
+            vtype=data.get('type', 'string'),
+            database_="memgraph"
+        )
+        
+        if res and res[0]['updated'] > 0:
+            logger.info(f"  ✓ Updated Variable: {var_name} = {val}")
+            vars_updated += 1
+        else:
+            logger.debug(f"  - Skipped Variable {var_name} (Node not found in Graph or already has default)")
 
     # ==============================================================================
     # ENRICH LOCALS
@@ -205,6 +224,27 @@ def enrich_graph(project_path):
     logger.info(f"  Locals Updated:    {locals_updated}")
     logger.info(f"  Resources Updated: {resources_updated}")
     logger.info("="*40)
+    
+    # ==============================================================================
+    # RUN TAINT ANALYSIS TO RESOLVE VALUES FOR RESOURCES (Step 1 - Preprocessing)
+    # ==============================================================================
+    logger.info("--- Running Taint Analysis (Preprocessing Step) ---")
+    try:
+        from implicit_dependency_resolver.taint_analysis import TaintAnalyzer
+        analyzer = TaintAnalyzer(path_id)
+        taint_count = analyzer.run()
+        logger.info(f"  ✓ Taint Analysis completed: {taint_count} resources resolved")
+        logger.info("  Note: This is a preprocessing step. Exact Matching will use all resource data.")
+    except Exception as e:
+        logger.warning(f"  ⚠ Taint Analysis failed: {e}")
+        logger.warning("  Continuing anyway - Exact Matching can work with raw properties")
+        import traceback
+        logger.debug(traceback.format_exc())
+    
+    logger.info("")
+    logger.info("="*60)
+    logger.info("Next step: Run phase1_exact_matching.py to create implicit links")
+    logger.info("="*60)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
