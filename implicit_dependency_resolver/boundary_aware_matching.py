@@ -232,6 +232,11 @@ class BoundaryAwareMatcher:
         return unique_matches
 
     def create_implicit_links(self, source_resource_id: int, target_resource_id: int, matched_substring: str = "") -> bool:
+        """
+        Create REF edge from source resource to target resource.
+        DEPRECATED: Use batch_create_links() for better performance.
+        Kept for backward compatibility.
+        """
         if source_resource_id == target_resource_id: return False
         
         target_label = f"`{self.path_id}`"
@@ -265,6 +270,88 @@ class BoundaryAwareMatcher:
             logger.warning(f"Error creating link: {e}")
             return False
 
+    def batch_create_links(self, links: List[tuple]) -> int:
+        """
+        Batch create multiple links in a single transaction for better performance.
+        
+        Args:
+            links: List of tuples (source_id, target_id, source_name, target_name, matched_substring, source_string)
+        
+        Returns:
+            Number of links created
+        """
+        if not links:
+            return 0
+        
+        target_label = f"`{self.path_id}`"
+        
+        # Filter out self-loops
+        valid_links = [(s, t, n1, n2, m, src) for s, t, n1, n2, m, src in links if s != t]
+        
+        if not valid_links:
+            return 0
+        
+        try:
+            # Batch check existing links
+            check_query = f"""
+            UNWIND $links AS link
+            MATCH (s:{target_label})-[r:REF]->(t:{target_label})
+            WHERE ID(s) = link.source AND ID(t) = link.target
+            RETURN link.source as source, link.target as target
+            """
+            
+            existing_records, _, _ = INSTANCE.execute_query(
+                check_query,
+                links=[{"source": s, "target": t} for s, t, _, _, _, _ in valid_links],
+                database_="memgraph"
+            )
+            
+            existing_pairs = {(r['source'], r['target']) for r in existing_records}
+            
+            # Filter out existing links
+            new_links = [(s, t, n1, n2, m, src) for s, t, n1, n2, m, src in valid_links if (s, t) not in existing_pairs]
+            
+            if not new_links:
+                logger.info(f"All {len(valid_links)} links already exist, skipping batch create")
+                return 0
+            
+            # Batch create new links with details
+            create_query = f"""
+            UNWIND $links AS link
+            MATCH (s:{target_label}), (t:{target_label})
+            WHERE ID(s) = link.source AND ID(t) = link.target
+            MERGE (s)-[r:REF]->(t)
+            SET r.method = 'boundary_match',
+                r.details = link.details
+            RETURN count(r) as created
+            """
+            
+            create_records, _, _ = INSTANCE.execute_query(
+                create_query,
+                links=[{
+                    "source": s,
+                    "target": t,
+                    "details": f"Matched substring '{m}'"
+                } for s, t, _, _, m, _ in new_links],
+                database_="memgraph"
+            )
+            
+            created_count = create_records[0]['created'] if create_records else 0
+            
+            # Log created links
+            for source_id, target_id, source_name, target_name, matched_substring, source_string in new_links[:10]:  # Log first 10
+                logger.info(f"  ✓ Link: {source_name} -> {target_name} (found '{matched_substring}' in '{source_string[:50]}...')")
+            if len(new_links) > 10:
+                logger.info(f"  ... and {len(new_links) - 10} more links")
+            
+            return created_count
+            
+        except Exception as e:
+            logger.error(f"Error in batch_create_links: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return 0
+
     # ... (Giữ nguyên các hàm helper _get_resource_properties, _extract_properties_from_node từ Step 2) ...
     # Để code gọn, tôi không paste lại các hàm helper extract properties, 
     # BẠN HÃY COPY CHÚNG TỪ FILE phase1_exact_matching.py SANG ĐÂY NHÉ.
@@ -287,7 +374,8 @@ class BoundaryAwareMatcher:
             records, _, _ = INSTANCE.execute_query(query, database_="memgraph")
             if not records: return 0
             
-            links_created = 0
+            # Collect links to batch create later
+            links_to_create = []
             
             for record in records:
                 source_id = record['resource_id']
@@ -318,9 +406,23 @@ class BoundaryAwareMatcher:
                         
                         if source_id == target_id: continue
                         
-                        if self.create_implicit_links(source_id, target_id, match_keyword):
-                            links_created += 1
-                            logger.info(f"  ✓ Link: {res_name} -> {target_full_name} (found '{match_keyword}' in '{source_str[:50]}...')")
+                        # Collect link for batch creation
+                        links_to_create.append((
+                            source_id,
+                            target_id,
+                            res_name,
+                            target_full_name,
+                            match_keyword,
+                            source_str
+                        ))
+            
+            # Batch create all collected links
+            if links_to_create:
+                logger.info(f"Batch creating {len(links_to_create)} links...")
+                links_created = self.batch_create_links(links_to_create)
+            else:
+                logger.info("No links to create")
+                links_created = 0
             
             logger.info(f"--- Boundary Matching Done. Links created: {links_created} ---")
             return links_created

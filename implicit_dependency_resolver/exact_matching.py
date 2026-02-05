@@ -267,6 +267,8 @@ class ExactMatcher:
     def create_implicit_links(self, source_resource_id: int, target_resource_id: int) -> bool:
         """
         Create REF edge from source resource to target resource.
+        DEPRECATED: Use batch_create_links() for better performance.
+        Kept for backward compatibility.
         """
         if source_resource_id == target_resource_id:
             return False  # Don't create self-loops
@@ -314,6 +316,87 @@ class ExactMatcher:
         except Exception as e:
             logger.warning(f"Error creating link from {source_resource_id} to {target_resource_id}: {e}")
             return False
+
+    def batch_create_links(self, links: List[tuple]) -> int:
+        """
+        Batch create multiple links in a single transaction for better performance.
+        
+        Args:
+            links: List of tuples (source_id, target_id, source_name, target_name, matched_string)
+                  where matched_string is optional for logging
+        
+        Returns:
+            Number of links created
+        """
+        if not links:
+            return 0
+        
+        target_label = f"`{self.path_id}`"
+        
+        # Filter out self-loops
+        valid_links = [(s, t, n1, n2, m) for s, t, n1, n2, m in links if s != t]
+        
+        if not valid_links:
+            return 0
+        
+        try:
+            # Batch check existing links
+            check_query = f"""
+            UNWIND $links AS link
+            MATCH (s:{target_label})-[r:REF]->(t:{target_label})
+            WHERE ID(s) = link.source AND ID(t) = link.target
+            RETURN link.source as source, link.target as target
+            """
+            
+            existing_records, _, _ = INSTANCE.execute_query(
+                check_query,
+                links=[{"source": s, "target": t} for s, t, _, _, _ in valid_links],
+                database_="memgraph"
+            )
+            
+            existing_pairs = {(r['source'], r['target']) for r in existing_records}
+            
+            # Filter out existing links
+            new_links = [(s, t, n1, n2, m) for s, t, n1, n2, m in valid_links if (s, t) not in existing_pairs]
+            
+            if not new_links:
+                logger.info(f"All {len(valid_links)} links already exist, skipping batch create")
+                return 0
+            
+            # Batch create new links
+            create_query = f"""
+            UNWIND $links AS link
+            MATCH (s:{target_label}), (t:{target_label})
+            WHERE ID(s) = link.source AND ID(t) = link.target
+            MERGE (s)-[r:REF]->(t)
+            SET r.method = 'implicit_exact_match'
+            RETURN count(r) as created
+            """
+            
+            create_records, _, _ = INSTANCE.execute_query(
+                create_query,
+                links=[{"source": s, "target": t} for s, t, _, _, _ in new_links],
+                database_="memgraph"
+            )
+            
+            created_count = create_records[0]['created'] if create_records else 0
+            
+            # Log created links
+            for source_id, target_id, source_name, target_name, matched_string in new_links[:10]:  # Log first 10
+                logger.info(
+                    f"  ✓ Created link: {source_name} -> {target_name} "
+                    f"(matched string: '{matched_string}')"
+                )
+            if len(new_links) > 10:
+                logger.info(f"  ... and {len(new_links) - 10} more links")
+            
+            return created_count
+            
+        except Exception as e:
+            logger.error(f"Error in batch_create_links: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return 0
 
     def _get_resource_properties(self, node_props: dict) -> dict:
         """
@@ -402,6 +485,9 @@ class ExactMatcher:
             links_created = 0
             resources_with_properties = 0
             
+            # Step 3: Collect links to batch create later
+            links_to_create = []
+            
             # Step 3: Process each resource
             for record in records:
                 source_resource_id = record['resource_id']
@@ -435,17 +521,25 @@ class ExactMatcher:
                             if source_resource_id == target_resource_id:
                                 continue
                             
-                            # Create link
-                            if self.create_implicit_links(source_resource_id, target_resource_id):
-                                links_created += 1
-                                logger.info(
-                                    f"  ✓ Created link: {resource_name} -> {target_name} "
-                                    f"(matched string: '{source_string}')"
-                                )
+                            # Collect link for batch creation
+                            links_to_create.append((
+                                source_resource_id,
+                                target_resource_id,
+                                resource_name,
+                                target_name,
+                                source_string
+                            ))
                 
                 except Exception as e:
                     logger.warning(f"Error processing resource {resource_name}: {e}")
                     continue
+            
+            # Step 4: Batch create all collected links
+            if links_to_create:
+                logger.info(f"Batch creating {len(links_to_create)} links...")
+                links_created = self.batch_create_links(links_to_create)
+            else:
+                logger.info("No links to create")
             
             logger.info(f"Processed {resources_with_properties} resources with extractable properties")
             logger.info(f"--- Exact Matching completed. Created {links_created} implicit links. ---")
