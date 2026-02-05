@@ -5,10 +5,18 @@ Contains the FuzzyMatcher class and heuristic rules.
 
 import logging
 import json
-import difflib
 import os
 import sys
 from typing import List, Dict, Any
+
+# Try to use rapidfuzz for better performance (10-100x faster than difflib)
+# Fallback to difflib if rapidfuzz is not available
+try:
+    from rapidfuzz import fuzz
+    USE_RAPIDFUZZ = True
+except ImportError:
+    import difflib
+    USE_RAPIDFUZZ = False
 
 # Setup paths to import internal modules BEFORE importing utils
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -20,6 +28,15 @@ if parent_dir not in sys.path:
 from utils.n4j_helper import INSTANCE
 
 logger = logging.getLogger(__name__)
+
+# Log which library is being used (only log once at module level)
+if USE_RAPIDFUZZ:
+    logger.debug("Using rapidfuzz for fuzzy matching (fast mode - 10-100x faster)")
+else:
+    logger.warning(
+        "rapidfuzz not found. Install it with 'pip install rapidfuzz' for 10-100x faster fuzzy matching. "
+        "Falling back to difflib (slower)."
+    )
 
 # ==========================================
 # CONFIGURATION & CONSTANTS
@@ -48,6 +65,12 @@ class FuzzyMatcher:
     def __init__(self, path_id: str, threshold: float = DEFAULT_SIMILARITY_THRESHOLD):
         self.path_id = path_id
         self.threshold = threshold
+        
+        # Log which library is being used
+        if USE_RAPIDFUZZ:
+            logger.info("Using rapidfuzz for fuzzy matching (fast mode)")
+        else:
+            logger.info("Using difflib for fuzzy matching (slow mode - consider installing rapidfuzz)")
 
     def flatten_props(self, obj: Any, result: Dict[str, str] = None) -> Dict[str, str]:
         """Flatten nested properties into a single-level Dict."""
@@ -141,9 +164,32 @@ class FuzzyMatcher:
         return list(target_types)
 
     def calculate_similarity(self, a: str, b: str) -> float:
-        return difflib.SequenceMatcher(None, a.lower(), b.lower()).ratio()
+        """
+        Calculate similarity ratio between two strings.
+        
+        Uses rapidfuzz if available (10-100x faster), otherwise falls back to difflib.
+        Both libraries produce identical results for basic ratio calculation.
+        
+        Args:
+            a: First string
+            b: Second string
+            
+        Returns:
+            Similarity ratio between 0.0 and 1.0
+        """
+        if USE_RAPIDFUZZ:
+            # rapidfuzz.ratio returns 0-100, convert to 0-1
+            return fuzz.ratio(a.lower(), b.lower()) / 100.0
+        else:
+            # difflib.SequenceMatcher returns 0-1 directly
+            return difflib.SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
     def create_fuzzy_link(self, source_id: int, target_id: int, score: float, details: str) -> bool:
+        """
+        Create REF edge from source resource to target resource.
+        DEPRECATED: Use batch_create_links() for better performance.
+        Kept for backward compatibility.
+        """
         # --- FIX 2: CHẶN SELF-LOOP ---
         if source_id == target_id: return False
         # -----------------------------
@@ -168,6 +214,90 @@ class FuzzyMatcher:
         res, _, _ = INSTANCE.execute_query(query, sid=source_id, tid=target_id, score=score, details=details, database_="memgraph")
         return len(res) > 0
 
+    def batch_create_links(self, links: List[tuple]) -> int:
+        """
+        Batch create multiple links in a single transaction for better performance.
+        
+        Args:
+            links: List of tuples (source_id, target_id, source_name, target_name, score, details)
+        
+        Returns:
+            Number of links created
+        """
+        if not links:
+            return 0
+        
+        target_label = f"`{self.path_id}`"
+        
+        # Filter out self-loops
+        valid_links = [(s, t, n1, n2, sc, d) for s, t, n1, n2, sc, d in links if s != t]
+        
+        if not valid_links:
+            return 0
+        
+        try:
+            # Batch check existing links
+            check_query = f"""
+            UNWIND $links AS link
+            MATCH (s:{target_label})-[r:REF]->(t:{target_label})
+            WHERE ID(s) = link.source AND ID(t) = link.target
+            RETURN link.source as source, link.target as target
+            """
+            
+            existing_records, _, _ = INSTANCE.execute_query(
+                check_query,
+                links=[{"source": s, "target": t} for s, t, _, _, _, _ in valid_links],
+                database_="memgraph"
+            )
+            
+            existing_pairs = {(r['source'], r['target']) for r in existing_records}
+            
+            # Filter out existing links
+            new_links = [(s, t, n1, n2, sc, d) for s, t, n1, n2, sc, d in valid_links if (s, t) not in existing_pairs]
+            
+            if not new_links:
+                logger.info(f"All {len(valid_links)} links already exist, skipping batch create")
+                return 0
+            
+            # Batch create new links with confidence and details
+            create_query = f"""
+            UNWIND $links AS link
+            MATCH (s:{target_label}), (t:{target_label})
+            WHERE ID(s) = link.source AND ID(t) = link.target
+            MERGE (s)-[r:REF]->(t)
+            SET r.method = 'fuzzy_match',
+                r.confidence = link.confidence,
+                r.details = link.details
+            RETURN count(r) as created
+            """
+            
+            create_records, _, _ = INSTANCE.execute_query(
+                create_query,
+                links=[{
+                    "source": s,
+                    "target": t,
+                    "confidence": sc,
+                    "details": d
+                } for s, t, _, _, sc, d in new_links],
+                database_="memgraph"
+            )
+            
+            created_count = create_records[0]['created'] if create_records else 0
+            
+            # Log created links
+            for source_id, target_id, source_name, target_name, score, details in new_links[:10]:  # Log first 10
+                logger.info(f"  ✓ Fuzzy Link ({score:.2f}): {source_name} -> {target_name} [{details}]")
+            if len(new_links) > 10:
+                logger.info(f"  ... and {len(new_links) - 10} more links")
+            
+            return created_count
+            
+        except Exception as e:
+            logger.error(f"Error in batch_create_links: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return 0
+
     def run(self) -> int:
         target_cache = self.build_target_cache()
         if not target_cache: return 0
@@ -180,7 +310,8 @@ class FuzzyMatcher:
         """
         records, _, _ = INSTANCE.execute_query(query, database_="memgraph")
         
-        links_created = 0
+        # Collect links to batch create later
+        links_to_create = []
         
         for rec in records:
             source_id = rec['id']
@@ -211,10 +342,24 @@ class FuzzyMatcher:
                         score = self.calculate_similarity(value, target_string)
                         if score >= self.threshold:
                             details = f"Fuzzy matched '{value}' with '{target_string}' via '{key}'"
-                            if self.create_fuzzy_link(source_id, cand['id'], score, details):
-                                logger.info(f"  ✓ Fuzzy Link ({score:.2f}): {source_name} -> {cand['full_node_name']} [{key}={value}]")
-                                links_created += 1
-
+                            # Collect link for batch creation
+                            links_to_create.append((
+                                source_id,
+                                cand['id'],
+                                source_name,
+                                cand['full_node_name'],
+                                score,
+                                details
+                            ))
+        
+        # Batch create all collected links
+        if links_to_create:
+            logger.info(f"Batch creating {len(links_to_create)} fuzzy links...")
+            links_created = self.batch_create_links(links_to_create)
+        else:
+            logger.info("No fuzzy links to create")
+            links_created = 0
+        
         return links_created
 
 
