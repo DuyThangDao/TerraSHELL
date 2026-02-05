@@ -7,4 +7,5 @@ pyecore
 python-hcl2
 pytm
 pyyaml
+rapidfuzz
 semgrep
