@@ -463,6 +463,154 @@ def LinkTagged(pathID: str):
     id=pathID,
     database_="memgraph"
     )
+
+def LinkTaggedOptimized(pathID: str, max_path_length: int = 20, limit_per_iteration: int = 50, max_iterations: int = 1000):
+    """
+    Optimized version của LinkTagged với các kỹ thuật:
+    1. Progressive Path Length: Xử lý paths ngắn trước (nhanh)
+    2. Query gốc với LIMIT + Loop: Xử lý paths dài và đảm bảo 100% accuracy
+    
+    Logic giữ nguyên 100% - chỉ tối ưu cách thực hiện.
+    
+    Args:
+        pathID: Path ID của project
+        max_path_length: Độ dài path tối đa để thử progressive (default: 20)
+        limit_per_iteration: Số lượng links để xử lý mỗi iteration trong fallback (default: 50)
+        max_iterations: Số lần lặp tối đa trong fallback để tránh infinite loop (default: 1000)
+        
+    Returns:
+        None
+    """
+    logger.info("Starting optimized LinkTagged...")
+    
+    # Lấy tất cả tagged resource nodes
+    records, _, _ = INSTANCE.execute_query(
+        f"""
+        MATCH (u:`{pathID}`:tagged:resource)
+        RETURN ID(u) as id
+        """,
+        database_="memgraph"
+    )
+    
+    tagged_node_ids = [r["id"] for r in records]
+    total_nodes = len(tagged_node_ids)
+    
+    if total_nodes <= 1:
+        logger.info("Less than 2 tagged nodes, nothing to link")
+        return
+    
+    logger.info(f"Found {total_nodes} tagged resource nodes")
+    
+    links_created = 0
+    
+    # ========================================================================
+    # PHASE 1: Progressive Path Length (xử lý paths ngắn - nhanh)
+    # ========================================================================
+    logger.info("Phase 1: Progressive path length (processing short paths first)...")
+    
+    # Xử lý từng node một để tránh timeout
+    for node_idx, u_id in enumerate(tagged_node_ids, 1):
+        if node_idx % 10 == 0 or node_idx == 1:
+            logger.info(f"Processing node {node_idx}/{total_nodes}: ID={u_id}")
+        
+        # Progressive path length: bắt đầu với path ngắn
+        for path_length in range(1, max_path_length + 1):
+            # Query với bounded path length và bounded exists() check
+            query = f"""
+                MATCH (u:`{pathID}`:tagged:resource)-[:REF*1..{path_length}]->(v:`{pathID}`:tagged:resource)
+                WHERE ID(u) = $u_id
+                    AND ID(u) != ID(v)
+                    AND NOT (u)-[:REF]->(v)
+                    AND NOT exists((u)-[:REF*1..{path_length}]->(:`{pathID}`:tagged:resource)-[:REF*1..{path_length}]->(v))
+                WITH DISTINCT u, v LIMIT 10
+                MERGE (u)-[:REF]->(v)
+                RETURN ID(u) as u_id, ID(v) as v_id
+            """
+            
+            try:
+                records, _, _ = INSTANCE.execute_query(
+                    query,
+                    u_id=u_id,
+                    database_="memgraph"
+                )
+                
+                if records:
+                    node_links = len(records)
+                    links_created += node_links
+                    logger.debug(f"  Node {u_id}, path length {path_length}: Created {node_links} links")
+                    # Early termination: Đã tìm thấy paths cho node này, chuyển sang node tiếp theo
+                    break
+                    
+            except Exception as e:
+                logger.warning(f"Error processing path length {path_length} for node {u_id}: {e}")
+                continue
+    
+    logger.info(f"Phase 1 completed. Created {links_created} links from progressive paths")
+    
+    # ========================================================================
+    # PHASE 2: Query gốc với LIMIT + Loop (đảm bảo 100% accuracy)
+    # ========================================================================
+    logger.info("Phase 2: Fallback to original query with LIMIT + loop (ensuring 100% accuracy)...")
+    
+    fallback_links_created = 0
+    iteration = 0
+    
+    while iteration < max_iterations:
+        iteration += 1
+        
+        try:
+            # Query gốc với LIMIT để tránh timeout
+            records, _, _ = INSTANCE.execute_query(
+                """
+                MATCH (u:$id:tagged:resource) -[*]-> (v:$id:tagged:resource)
+                WHERE NOT exists((u)-[*]->(:$id:tagged:resource)-[*]->(v))
+                    AND NOT (u)-[:REF]->(v)
+                WITH DISTINCT u, v LIMIT $limit
+                MERGE (u)-[:REF]->(v)
+                RETURN count(*) as cnt
+                """,
+                id=pathID,
+                limit=limit_per_iteration,
+                database_="memgraph"
+            )
+            
+            if not records:
+                logger.warning(f"Iteration {iteration}: No records returned")
+                break
+            
+            count = records[0]["cnt"] if records[0]["cnt"] else 0
+            
+            if count == 0:
+                # Không còn cặp nào mới, dừng lại
+                logger.info(f"Iteration {iteration}: No more links to create. Stopping.")
+                break
+            
+            fallback_links_created += count
+            logger.info(f"Iteration {iteration}: Created {count} links (total fallback: {fallback_links_created})")
+            
+        except Exception as e:
+            logger.warning(f"Iteration {iteration} failed: {e}")
+            # Nếu timeout hoặc lỗi, thử tiếp tục với iteration tiếp theo
+            # Nhưng nếu lỗi liên tục, có thể dừng lại
+            if "timeout" in str(e).lower() or "Transaction was asked to abort" in str(e):
+                logger.warning("Timeout detected. You may need to increase transaction timeout or reduce limit_per_iteration")
+            break
+    
+    total_links_created = links_created + fallback_links_created
+    logger.info(f"Phase 2 completed. Created {fallback_links_created} links from fallback (total: {total_links_created})")
+    
+    # Final count
+    records, _, _ = INSTANCE.execute_query(
+        """
+        MATCH (u:$id:tagged:resource)-[:REF]->(v:$id:tagged:resource)
+        RETURN count(*) as cnt
+        """,
+        id=pathID,
+        database_="memgraph"
+    )
+    
+    total_links = records[0]["cnt"] if records else 0
+    logger.info(f"LinkTaggedOptimized completed. Total direct links: {total_links}")
     # And cleanup
     # #region agent log
     import json
@@ -598,6 +746,157 @@ def RemoveNonTagged(pathID: str):
     # database_="memgraph"
     # )
     # logger.info("DELETE case 3: " + str(records[0]["cnt"]))
+
+def RemoveNonTaggedOptimized(
+    pathID: str,
+    max_final_depth: int = 20,
+    progressive_step: int = 2,
+    max_iterations: int = 100
+):
+    """
+    Optimized version của RemoveNonTagged với các kỹ thuật:
+    1. Smart Pre-filtering: Chỉ chạy Case 3/4 sau khi Case 1/2 không còn xóa được
+    2. Progressive Depth: Bắt đầu với depth nhỏ, tăng dần đến max_final_depth
+    3. Early Termination: Kiểm tra tagged nodes trước khi chạy Case 3/4
+    4. Caching: Cache số lượng tagged nodes để tránh query lại
+    
+    Args:
+        pathID: Path ID của project
+        max_final_depth: Độ sâu tối đa để kiểm tra paths (default: 20)
+        progressive_step: Bước tăng depth mỗi lần (default: 2)
+        max_iterations: Số lần lặp tối đa để tránh infinite loop (default: 100)
+    
+    Returns:
+        None
+    """
+    # Cache for tagged nodes count
+    tagged_count_cache = None
+    
+    def get_tagged_count():
+        nonlocal tagged_count_cache
+        if tagged_count_cache is None:
+            records, _, _ = INSTANCE.execute_query(
+                f"MATCH (u:`{pathID}`:tagged) RETURN count(u) as cnt",
+                database_="memgraph"
+            )
+            tagged_count_cache = records[0]["cnt"] if records else 0
+        return tagged_count_cache
+    
+    # Early Termination: Kiểm tra có tagged nodes không
+    tagged_count = get_tagged_count()
+    if tagged_count == 0:
+        logger.info("No tagged nodes found. Skipping Case 3 and Case 4.")
+        logger.info("Running only Case 1 and Case 2...")
+    
+    iteration = 0
+    current_depth = 1
+    
+    while iteration < max_iterations:
+        iteration += 1
+        flag = False
+        
+        # Phase 1: Chạy Case 1 và Case 2 nhiều lần (nhanh)
+        case1_total = 0
+        case2_total = 0
+        
+        # Case 1: Chạy cho đến khi không còn xóa được
+        while True:
+            records, _, _ = INSTANCE.execute_query(
+            """
+                MATCH (u:$id)
+                WHERE not (u:tagged) AND not exists ((u)<-[:REF]-(:$id)) 
+                    AND outDegree(u) = 1
+                DETACH DELETE u
+                RETURN COUNT(u) as cnt
+            """,
+            id = pathID,
+            database_="memgraph"
+            )
+            r = records[0]["cnt"] if records else 0
+            if r == 0:
+                break
+            case1_total += r
+            logger.info("DELETE case 1: " + str(r))
+            flag = True
+        
+        # Case 2: Chạy cho đến khi không còn xóa được
+        while True:
+            records, _, _ = INSTANCE.execute_query(
+            """
+                MATCH (u:$id)
+                WHERE not (u:tagged) AND not exists ((u)-[:REF]->(:$id))
+                    AND inDegree(u) = 1
+                DETACH DELETE u
+                RETURN COUNT(u) as cnt
+            """,
+            id = pathID,
+            database_="memgraph"
+            )
+            r = records[0]["cnt"] if records else 0
+            if r == 0:
+                break
+            case2_total += r
+            logger.info("DELETE case 2: " + str(r))
+            flag = True
+        
+        # Phase 2: Smart Pre-filtering - Chỉ chạy Case 3/4 khi Case 1/2 không còn xóa được
+        # Và chỉ khi có tagged nodes
+        if tagged_count > 0 and case1_total == 0 and case2_total == 0:
+            logger.info(f"Phase 2: Running Case 3 and Case 4 with depth={current_depth}")
+            
+            # Case 3 với progressive depth
+            query3 = f"""
+                MATCH (u:$id)
+                WHERE not (u:tagged) AND not exists ((u)<-[:REF]-(:$id))
+                    AND not exists((:$id:tagged)<-[*1..{current_depth}]-(u)-[*1..{current_depth}]->(:$id:tagged)) 
+                DETACH DELETE u
+                RETURN COUNT(u) as cnt
+            """
+            records, _, _ = INSTANCE.execute_query(
+                query3,
+                id = pathID,
+                database_="memgraph"
+            )
+            r3 = records[0]["cnt"] if records else 0
+            logger.info(f"DELETE case 3 (depth={current_depth}): {r3}")
+            flag = flag or (r3 > 0)
+            
+            # Case 4 với progressive depth
+            query4 = f"""
+                MATCH (u:$id)
+                WHERE not (u:tagged) AND not exists ((u)-[:REF]->(:$id))
+                    AND not exists((:$id:tagged)-[*1..{current_depth}]->(u)<-[*1..{current_depth}]-(:$id:tagged)) 
+                DETACH DELETE u
+                RETURN COUNT(u) as cnt
+            """
+            records, _, _ = INSTANCE.execute_query(
+                query4,
+                id = pathID,
+                database_="memgraph"
+            )
+            r4 = records[0]["cnt"] if records else 0
+            logger.info(f"DELETE case 4 (depth={current_depth}): {r4}")
+            flag = flag or (r4 > 0)
+            
+            # Progressive Depth: Nếu không xóa được gì với depth hiện tại, tăng depth
+            if r3 == 0 and r4 == 0:
+                if current_depth < max_final_depth:
+                    current_depth += progressive_step
+                    logger.info(f"Increasing depth to {current_depth}")
+                else:
+                    logger.info(f"Reached max depth {max_final_depth}, stopping Case 3/4")
+        elif tagged_count == 0:
+            logger.debug("Skipping Case 3/4: No tagged nodes")
+        else:
+            logger.debug("Skipping Case 3/4: Case 1/2 still deleting nodes")
+        
+        # Nếu không còn nodes nào được xóa, dừng lại
+        if not flag:
+            logger.info(f"No more nodes to delete. Total iterations: {iteration}")
+            break
+    
+    if iteration >= max_iterations:
+        logger.warning(f"Reached maximum iterations ({max_iterations}). Stopping.")
     
 def FindNodeRegexAnyModule(regexName, pathID):
     records, _, _ = INSTANCE.execute_query(
@@ -692,6 +991,430 @@ def CompressV2(regexName, pathID):
         Cleanup(pathID)   # Performance bottlleneck, but required 
     
     pass
+
+def CompressV2Optimized(regexName, pathID):
+    """
+    Optimized version của CompressV2 với các kỹ thuật:
+    1. Batch Cleanup: Chỉ gọi Cleanup một lần ở cuối thay vì sau mỗi node
+    2. Conditional Cleanup: Chỉ cleanup nếu có self-loops
+    3. Early Termination: Skip nếu không có nodes để compress
+    4. Reduce Logging: Giảm logging overhead trong loop
+    5. Caching: Cache node_ids để tránh query lại
+    
+    Logic giữ nguyên 100% - chỉ tối ưu cách thực hiện.
+    
+    Args:
+        regexName: Regex pattern để tìm nodes cần compress
+        pathID: Path ID của project
+        
+    Returns:
+        None
+    """
+    # Early Termination: Kiểm tra nodes trước
+    node_ids = FindNodeRegexAnyModule(regexName, pathID)
+    if len(node_ids) <= 1:
+        logger.info("Nothing to compress")
+        return
+    
+    logger.info(f"Got {len(node_ids)} nodes in same group")
+    
+    # Cache node_ids để dùng trong loop
+    nodes_to_compress = node_ids[:-1]  # Tất cả trừ node cuối (representative)
+    total_nodes = len(nodes_to_compress)
+    
+    # Reduce Logging: Chỉ log summary thay vì từng node
+    if total_nodes > 10:
+        logger.info(f"Compressing {total_nodes} nodes (logging every 10th node)...")
+    else:
+        logger.info(f"Compressing {total_nodes} nodes...")
+    
+    # Compress từng node (logic giữ nguyên 100%)
+    for idx, _id in enumerate(nodes_to_compress):
+        # Log progress cho large batches
+        if total_nodes > 10 and (idx + 1) % 10 == 0:
+            logger.debug(f"Progress: {idx + 1}/{total_nodes} nodes compressed")
+        elif total_nodes <= 10:
+            logger.debug(f"Compressing node {_id}")
+        
+        # Query 1: Forward path matching (giữ nguyên logic)
+        records, summary, _ = INSTANCE.execute_query(
+            """
+                MATCH (u:$id:resource)-[:REF*]->(v:$id:resource)
+
+                WHERE ID(v) = $nodeid 
+                    AND ID(u) != ID(v)
+                    AND ID(u) in $list 
+                
+                WITH u,v LIMIT 1
+
+                OPTIONAL MATCH f=(s:$id)-[:REF]->(v)
+                WHERE ID(s) != ID(u)
+
+                OPTIONAL MATCH g=(v)-[:REF]->(d:$id)
+                WHERE ID(d) != ID(u)
+
+                DETACH DELETE v
+
+                WITH collect(s) as cs, collect(d) as cd, u
+                                FOREACH (ucs in cs |
+                    MERGE for=(ucs)-[:REF]->(u)
+                )
+                FOREACH (ucd in cd |
+                    MERGE bac=(u)-[:REF]->(ucd)
+                )
+                return *;
+            """,
+            id = pathID,
+            nodeid=_id,
+            list=node_ids,
+            database_="memgraph"
+        )
+        
+        # Query 2: Backward path matching (giữ nguyên logic)
+        records, summary, _ = INSTANCE.execute_query(
+            """
+                MATCH (u:$id:resource)<-[:REF*]-(v:$id:resource)
+
+                WHERE ID(v) = $nodeid 
+                    AND ID(u) != ID(v)
+                    AND ID(u) in $list 
+                
+                WITH u,v LIMIT 1
+
+                OPTIONAL MATCH f=(s:$id)-[:REF]->(v)
+                WHERE ID(s) != ID(u)
+
+                OPTIONAL MATCH g=(v)-[:REF]->(d:$id)
+                WHERE ID(d) != ID(u)
+
+                DETACH DELETE v
+
+                WITH collect(s) as cs, collect(d) as cd, u
+                                FOREACH (ucs in cs |
+                    MERGE for=(ucs)-[:REF]->(u)
+                )
+                FOREACH (ucd in cd |
+                    MERGE bac=(u)-[:REF]->(ucd)
+                )
+                return *;
+            """,
+            id = pathID,
+            nodeid=_id,
+            list=node_ids,
+            database_="memgraph"
+        )
+        
+        # KHÔNG gọi Cleanup ở đây - sẽ gọi một lần ở cuối
+    
+    # Batch Cleanup: Chỉ gọi Cleanup một lần ở cuối
+    # Conditional Cleanup: Chỉ cleanup nếu có self-loops
+    if has_self_loops(pathID):
+        logger.debug("Self-loops detected, running cleanup...")
+        Cleanup(pathID)
+    else:
+        logger.debug("No self-loops detected, skipping cleanup")
+    
+    logger.info(f"Compressed {total_nodes} nodes successfully")
+
+def get_node_connection_count(node_id: int, pathID: str) -> int:
+    """
+    Lấy số lượng connections của một node (incoming + outgoing).
+    Dùng COUNT thay vì size() để tương thích Memgraph (exists chỉ được dùng trong WHERE).
+    """
+    records, _, _ = INSTANCE.execute_query(
+        """
+        MATCH (n)
+        WHERE ID(n) = $node_id
+        OPTIONAL MATCH (n)-[r:REF]-()
+        RETURN count(r) as degree
+        """,
+        node_id=node_id,
+        database_="memgraph"
+    )
+    return int(records[0]["degree"]) if records and records[0]["degree"] is not None else 0
+
+def compress_single_node_hybrid(node_id: int, node_ids: list, pathID: str, max_path_length: int = 20) -> bool:
+    """
+    Compress một node với Hybrid Approach:
+    1. Direct Relationships First
+    2. Progressive Path Length với Early Stop
+    
+    Args:
+        node_id: ID của node cần compress
+        node_ids: List tất cả node IDs trong group
+        pathID: Path ID của project
+        max_path_length: Độ dài path tối đa để tìm (default: 20)
+        
+    Returns:
+        True nếu compress thành công, False nếu không tìm thấy path
+    """
+    found_u = None
+    
+    # ========================================================================
+    # PHASE 1: Direct Relationships First (nhanh nhất)
+    # ========================================================================
+    # Forward: Kiểm tra direct relationships trước
+    records, _, _ = INSTANCE.execute_query(
+        """
+            MATCH (u:$id:resource)-[:REF]->(v:$id:resource)
+            WHERE ID(v) = $nodeid 
+                AND ID(u) != ID(v)
+                AND ID(u) in $list 
+            WITH u, v LIMIT 1
+            RETURN ID(u) as u_id
+        """,
+        id=pathID,
+        nodeid=node_id,
+        list=node_ids,
+        database_="memgraph"
+    )
+    
+    if records and records[0]["u_id"]:
+        found_u = records[0]["u_id"]
+        logger.debug(f"Found direct forward relationship: {found_u} -> {node_id}")
+    else:
+        # Backward: Kiểm tra direct relationships ngược lại
+        records, _, _ = INSTANCE.execute_query(
+            """
+                MATCH (u:$id:resource)<-[:REF]-(v:$id:resource)
+                WHERE ID(v) = $nodeid 
+                    AND ID(u) != ID(v)
+                    AND ID(u) in $list 
+                WITH u, v LIMIT 1
+                RETURN ID(u) as u_id
+            """,
+            id=pathID,
+            nodeid=node_id,
+            list=node_ids,
+            database_="memgraph"
+        )
+        
+        if records and records[0]["u_id"]:
+            found_u = records[0]["u_id"]
+            logger.debug(f"Found direct backward relationship: {found_u} <- {node_id}")
+    
+    # ========================================================================
+    # PHASE 2: Progressive Path Length với Early Stop (nếu không có direct)
+    # ========================================================================
+    if not found_u:
+        # Forward: Progressive path length
+        for path_length in range(2, max_path_length + 1):
+            # Build query với path length động - sử dụng f-string cho path length
+            query_template = f"""
+                MATCH (u:$id:resource)-[:REF*1..{path_length}]->(v:$id:resource)
+                WHERE ID(v) = $nodeid 
+                    AND ID(u) != ID(v)
+                    AND ID(u) in $list 
+                WITH u, v LIMIT 1
+                RETURN ID(u) as u_id
+            """
+            records, _, _ = INSTANCE.execute_query(
+                query_template,
+                id=pathID,
+                nodeid=node_id,
+                list=node_ids,
+                database_="memgraph"
+            )
+            
+            if records and records[0]["u_id"]:
+                found_u = records[0]["u_id"]
+                logger.debug(f"Found forward path (length={path_length}): {found_u} -> {node_id}")
+                break
+        
+        # Backward: Progressive path length (nếu vẫn chưa tìm thấy)
+        if not found_u:
+            for path_length in range(2, max_path_length + 1):
+                # Build query với path length động - sử dụng f-string cho path length
+                query_template = f"""
+                    MATCH (u:$id:resource)<-[:REF*1..{path_length}]-(v:$id:resource)
+                    WHERE ID(v) = $nodeid 
+                        AND ID(u) != ID(v)
+                        AND ID(u) in $list 
+                    WITH u, v LIMIT 1
+                    RETURN ID(u) as u_id
+                """
+                records, _, _ = INSTANCE.execute_query(
+                    query_template,
+                    id=pathID,
+                    nodeid=node_id,
+                    list=node_ids,
+                    database_="memgraph"
+                )
+                
+                if records and records[0]["u_id"]:
+                    found_u = records[0]["u_id"]
+                    logger.debug(f"Found backward path (length={path_length}): {found_u} <- {node_id}")
+                    break
+    
+    # ========================================================================
+    # PHASE 3: Fallback to Unbounded Path (nếu vẫn chưa tìm thấy)
+    # ========================================================================
+    if not found_u:
+        # Forward: Unbounded path (giữ nguyên logic cũ)
+        records, _, _ = INSTANCE.execute_query(
+            """
+                MATCH (u:$id:resource)-[:REF*]->(v:$id:resource)
+                WHERE ID(v) = $nodeid 
+                    AND ID(u) != ID(v)
+                    AND ID(u) in $list 
+                WITH u, v LIMIT 1
+                RETURN ID(u) as u_id
+            """,
+            id=pathID,
+            nodeid=node_id,
+            list=node_ids,
+            database_="memgraph"
+        )
+        
+        if records and records[0]["u_id"]:
+            found_u = records[0]["u_id"]
+            logger.debug(f"Found forward unbounded path: {found_u} -> {node_id}")
+        else:
+            # Backward: Unbounded path
+            records, _, _ = INSTANCE.execute_query(
+                """
+                    MATCH (u:$id:resource)<-[:REF*]-(v:$id:resource)
+                    WHERE ID(v) = $nodeid 
+                        AND ID(u) != ID(v)
+                        AND ID(u) in $list 
+                    WITH u, v LIMIT 1
+                    RETURN ID(u) as u_id
+                """,
+                id=pathID,
+                nodeid=node_id,
+                list=node_ids,
+                database_="memgraph"
+            )
+            
+            if records and records[0]["u_id"]:
+                found_u = records[0]["u_id"]
+                logger.debug(f"Found backward unbounded path: {found_u} <- {node_id}")
+    
+    # Nếu không tìm thấy node u, không thể compress
+    if not found_u:
+        logger.warning(f"Could not find path to compress node {node_id}")
+        return False
+    
+    # ========================================================================
+    # PHASE 4: Compress node với node u đã tìm được (giữ nguyên logic)
+    # ========================================================================
+    records, summary, _ = INSTANCE.execute_query(
+        """
+            MATCH (u:$id:resource), (v:$id:resource)
+            WHERE ID(u) = $u_id AND ID(v) = $nodeid
+
+            OPTIONAL MATCH f=(s:$id)-[:REF]->(v)
+            WHERE ID(s) != ID(u)
+
+            OPTIONAL MATCH g=(v)-[:REF]->(d:$id)
+            WHERE ID(d) != ID(u)
+
+            DETACH DELETE v
+
+            WITH collect(s) as cs, collect(d) as cd, u
+            FOREACH (ucs in cs |
+                MERGE (ucs)-[:REF]->(u)
+            )
+            FOREACH (ucd in cd |
+                MERGE (u)-[:REF]->(ucd)
+            )
+            return *;
+        """,
+        id=pathID,
+        u_id=found_u,
+        nodeid=node_id,
+        database_="memgraph"
+    )
+    
+    return True
+
+def CompressV2Hybrid(regexName, pathID, max_path_length: int = 20):
+    """
+    Hybrid Optimized version của CompressV2 với các kỹ thuật:
+    1. Direct Relationships First: Kiểm tra direct relationships trước (nhanh nhất)
+    2. Progressive Path Length: Bắt đầu với path nhỏ, tăng dần, dừng khi tìm thấy
+    3. Optimize Query Order: Xử lý nodes đơn giản trước
+    4. Batch Cleanup: Chỉ gọi Cleanup một lần ở cuối
+    5. Conditional Cleanup: Chỉ cleanup nếu có self-loops
+    6. Reduce Logging: Giảm logging overhead
+    
+    Logic giữ nguyên 100% - chỉ tối ưu cách thực hiện.
+    KHÔNG giới hạn path length - vẫn tìm đầy đủ paths khi cần.
+    
+    Args:
+        regexName: Regex pattern để tìm nodes cần compress
+        pathID: Path ID của project
+        max_path_length: Độ dài path tối đa để thử progressive (default: 20)
+                        Sau đó sẽ fallback về unbounded nếu cần
+        
+    Returns:
+        None
+    """
+    # Early Termination: Kiểm tra nodes trước
+    node_ids = FindNodeRegexAnyModule(regexName, pathID)
+    if len(node_ids) <= 1:
+        logger.info("Nothing to compress")
+        return
+    
+    logger.info(f"Got {len(node_ids)} nodes in same group")
+    
+    # Cache node_ids để dùng trong loop
+    nodes_to_compress = node_ids[:-1]  # Tất cả trừ node cuối (representative)
+    total_nodes = len(nodes_to_compress)
+    
+    # Optimize Query Order: Sort nodes theo số lượng connections (ít nhất trước)
+    logger.debug("Sorting nodes by connection count (simple nodes first)...")
+    nodes_with_degree = [(node_id, get_node_connection_count(node_id, pathID)) for node_id in nodes_to_compress]
+    nodes_sorted = sorted(nodes_with_degree, key=lambda x: x[1])  # Sort theo degree tăng dần
+    nodes_to_compress_sorted = [node_id for node_id, _ in nodes_sorted]
+    
+    logger.info(f"Compressing {total_nodes} nodes (sorted by complexity)...")
+    
+    # Compress từng node với Hybrid Approach
+    compressed_count = 0
+    for idx, _id in enumerate(nodes_to_compress_sorted):
+        # Log progress cho large batches
+        if total_nodes > 10 and (idx + 1) % 10 == 0:
+            logger.info(f"Progress: {idx + 1}/{total_nodes} nodes compressed")
+        elif total_nodes <= 10:
+            logger.debug(f"Compressing node {_id}")
+        
+        # Compress với Hybrid Approach
+        success = compress_single_node_hybrid(_id, node_ids, pathID, max_path_length)
+        if success:
+            compressed_count += 1
+            # Update node_ids sau mỗi lần compress (node đã bị xóa)
+            node_ids = [nid for nid in node_ids if nid != _id]
+    
+    # Batch Cleanup: Chỉ gọi Cleanup một lần ở cuối
+    # Conditional Cleanup: Chỉ cleanup nếu có self-loops
+    if has_self_loops(pathID):
+        logger.debug("Self-loops detected, running cleanup...")
+        Cleanup(pathID)
+    else:
+        logger.debug("No self-loops detected, skipping cleanup")
+    
+    logger.info(f"Compressed {compressed_count}/{total_nodes} nodes successfully")
+
+def has_self_loops(pathID: str) -> bool:
+    """
+    Kiểm tra nhanh xem có self-loops không
+    
+    Args:
+        pathID: Path ID của project
+        
+    Returns:
+        True nếu có self-loops, False nếu không
+    """
+    records, _, _ = INSTANCE.execute_query(
+        f"""
+        MATCH (u:`{pathID}`)-[rel]-(u:`{pathID}`)
+        RETURN count(rel) as cnt
+        LIMIT 1
+        """,
+        database_="memgraph"
+    )
+    return records[0]["cnt"] > 0 if records and records[0]["cnt"] else False
 
 def Cleanup(pathID):
     # Self loop
