@@ -5,6 +5,7 @@ import logging
 import graphviz
 import re
 import os
+import time
 
 from dfdgraph import DataStore
 from dfdgraph.component import COMPONENT_ID_NODE
@@ -61,18 +62,12 @@ def main(in_path, anno_path="./input/aws_annotation.yaml", rule_path="./input/aw
     pathID = LoadFromFolder(in_path, init=reinit)
 
     # ============================================================================
-    # PHASE 1.5: IMPLICIT DEPENDENCY RESOLUTION
+    # PHASE 1.5a: IMPLICIT DEPENDENCY RESOLUTION - ENRICH ONLY
+    # Enrich properties (decode variables/locals) BEFORE tagging/removing nodes
     # ============================================================================
     if os.getenv("ENABLE_IMPLICIT_RESOLVER", "true").lower() == "true":
-        from implicit import run_implicit_dependency_resolution
-        run_implicit_dependency_resolution(
-            project_path=in_path,
-            path_id=pathID,
-            enable_enrich=True,
-            enable_exact=True,
-            enable_boundary=True,
-            enable_fuzzy=True
-        )
+        from implicit import run_implicit_enrich_only
+        run_implicit_enrich_only(project_path=in_path)
 
     for key in anno:
         if key == "external_entities":
@@ -87,6 +82,19 @@ def main(in_path, anno_path="./input/aws_annotation.yaml", rule_path="./input/aw
     for compress in compresses:
         logging.info("Compressing " + compress)
         CompressV2(compress, pathID)
+
+    # ============================================================================
+    # PHASE 1.5b: IMPLICIT DEPENDENCY RESOLUTION - MATCHING ONLY
+    # Create implicit edges AFTER compress to ensure edges are at compressed level
+    # ============================================================================
+    if os.getenv("ENABLE_IMPLICIT_RESOLVER", "true").lower() == "true":
+        from implicit import run_implicit_matching_only
+        run_implicit_matching_only(
+            path_id=pathID,
+            enable_exact=True,
+            enable_boundary=True,
+            enable_fuzzy=True
+        )
 
     LinkTagged(pathID)
     RemoveNonTagged(pathID)
@@ -187,7 +195,7 @@ def main(in_path, anno_path="./input/aws_annotation.yaml", rule_path="./input/aw
         else:
             n = COMPONENT_ID_NODE[id_] if id_ in COMPONENT_ID_NODE else DataStore(id_, crafted_name, r["annotation"])
         aws.AddNode(n)
-        logging.info(crafted_name)    
+        logging.info(crafted_name)
 
         for pub in publics:
             if re.fullmatch(pub, r["name"]):

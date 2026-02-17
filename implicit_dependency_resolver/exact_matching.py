@@ -13,7 +13,8 @@ import json
 import re
 import os
 import sys
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any, Set, Optional
+from collections import defaultdict, deque
 
 # Setup paths to import internal modules BEFORE importing utils
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +39,10 @@ class ExactMatcher:
         """
         self.path_id = path_id
         self.case_sensitive = case_sensitive
+        # Cache for graph structure and tagged nodes (lazy-loaded)
+        self._graph_cache: Optional[Dict[int, Set[int]]] = None
+        self._tagged_ids_cache: Optional[Set[int]] = None
+        self._resource_names_cache: Optional[Dict[int, str]] = None
 
     def build_symbol_table(self) -> Dict[str, Dict[str, Any]]:
         """
@@ -317,9 +322,159 @@ class ExactMatcher:
             logger.warning(f"Error creating link from {source_resource_id} to {target_resource_id}: {e}")
             return False
 
+    def _load_graph_cache(self) -> Dict[int, Set[int]]:
+        """
+        Load graph structure (adjacency list) into memory for BFS traversal.
+        Cached after first call to avoid repeated database queries.
+        
+        Returns:
+            Adjacency list: {source_id: {target_id1, target_id2, ...}}
+        """
+        if self._graph_cache is not None:
+            return self._graph_cache
+        
+        target_label = f"`{self.path_id}`"
+        
+        # Pull all REF edges (similar to LinkTaggedBFS Step 2)
+        records, _, _ = INSTANCE.execute_query(
+            f"""
+            MATCH (a:{target_label})-[:REF]->(b:{target_label})
+            RETURN ID(a) as src, ID(b) as dst
+            """,
+            database_="memgraph"
+        )
+        
+        # Build adjacency list
+        adj = defaultdict(set)
+        for r in records:
+            adj[r["src"]].add(r["dst"])
+        
+        self._graph_cache = adj
+        logger.debug(f"Loaded graph cache: {len(adj)} nodes with edges")
+        return adj
+    
+    def _get_tagged_ids(self) -> Set[int]:
+        """
+        Get set of all tagged node IDs. Cached after first call.
+        
+        Returns:
+            Set of tagged node IDs
+        """
+        if self._tagged_ids_cache is not None:
+            return self._tagged_ids_cache
+        
+        target_label = f"`{self.path_id}`"
+        records, _, _ = INSTANCE.execute_query(
+            f"""
+            MATCH (u:{target_label}:tagged:resource)
+            RETURN ID(u) as id
+            """,
+            database_="memgraph"
+        )
+        
+        self._tagged_ids_cache = {r["id"] for r in records}
+        logger.debug(f"Loaded {len(self._tagged_ids_cache)} tagged node IDs")
+        return self._tagged_ids_cache
+    
+    def _get_resource_name(self, node_id: int) -> str:
+        """
+        Get resource name for a node ID. Cached after first call.
+        
+        Args:
+            node_id: Node ID
+            
+        Returns:
+            Resource name or "unknown"
+        """
+        if self._resource_names_cache is None:
+            self._resource_names_cache = {}
+        
+        if node_id in self._resource_names_cache:
+            return self._resource_names_cache[node_id]
+        
+        target_label = f"`{self.path_id}`"
+        records, _, _ = INSTANCE.execute_query(
+            f"""
+            MATCH (r:{target_label})
+            WHERE ID(r) = $node_id
+            RETURN r.name as name, r.resource_name as resource_name
+            LIMIT 1
+            """,
+            node_id=node_id,
+            database_="memgraph"
+        )
+        
+        if records:
+            name = records[0].get('name') or records[0].get('resource_name') or 'unknown'
+        else:
+            name = 'unknown'
+        
+        self._resource_names_cache[node_id] = name
+        return name
+    
+    def _is_tagged(self, node_id: int) -> bool:
+        """
+        Check if a node is tagged.
+        
+        Args:
+            node_id: Node ID
+            
+        Returns:
+            True if node is tagged, False otherwise
+        """
+        return node_id in self._get_tagged_ids()
+    
+    def find_reachable_tagged_nodes(self, source_id: int, max_depth: Optional[int] = None) -> Set[int]:
+        """
+        BFS from source_id to find all tagged nodes reachable.
+        Used for transitive matching: when a non-tagged target is found,
+        trace further to find tagged nodes reachable from it.
+        
+        Similar to LinkTaggedBFS but only from a single source.
+        
+        Args:
+            source_id: Source node ID to start BFS from
+            max_depth: Maximum depth (None = unlimited, recommended for 100% accuracy)
+        
+        Returns:
+            Set of tagged node IDs reachable from source_id (excluding source_id itself)
+        """
+        adj = self._load_graph_cache()
+        tagged_ids = self._get_tagged_ids()
+        
+        visited = set()
+        queue = deque([(source_id, 0)])  # (node_id, depth)
+        visited.add(source_id)
+        reached_tagged = set()
+        
+        while queue:
+            node, depth = queue.popleft()
+            
+            # Check max_depth (if specified)
+            if max_depth is not None and depth >= max_depth:
+                continue
+            
+            # If tagged node (and not source), add to result
+            if node in tagged_ids and node != source_id:
+                reached_tagged.add(node)
+                # Continue BFS through tagged nodes (like LinkTaggedBFS)
+            
+            # BFS continue
+            for neighbor in adj.get(node, set()):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, depth + 1))
+        
+        return reached_tagged
+    
     def batch_create_links(self, links: List[tuple]) -> int:
         """
         Batch create multiple links in a single transaction for better performance.
+        
+        ENHANCED with transitive matching:
+        - If target is non-tagged, trace further to find tagged nodes reachable from it
+        - Create links between all matched nodes (no tagged filter)
+        - This ensures links are preserved after RemoveNonTagged step
         
         Args:
             links: List of tuples (source_id, target_id, source_name, target_name, matched_string)

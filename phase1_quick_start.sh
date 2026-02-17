@@ -4,7 +4,7 @@
 
 set -e  # Exit on error
 
-PROJECT_DIR="/home/thangdd/repos/TerrARA/terraform-project/test"
+PROJECT_DIR="/home/thangdd/repos/TerrARA/terraform-project/implicit_resolver_step_1"
 SCRIPT_DIR="/home/thangdd/repos/TerrARA"
 TMP_DIR="/tmp"
 

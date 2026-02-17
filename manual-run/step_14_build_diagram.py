@@ -5,6 +5,7 @@ Step 14: Build diagram - Query tagged nodes and create diagram structure
 import sys
 import logging
 import time
+import json
 import re
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from dfdgraph.trustboundary import BOUNDARY_ID_NODE
 from utils.n4j_helper import QueryTagged, FindOwn
 from shared_state import (
     get_anno, get_rule, get_publics_set, get_global_tb_name, 
-    get_path_id
+    get_path_id, set_diagram
 )
 
 # Setup logging
@@ -165,12 +166,51 @@ def main():
         other_nodes = QueryTagged(pathID, "processes") + QueryTagged(pathID, "data_stores")
         logger.info(f"Found {len(other_nodes)} other nodes")
         
+        # #region agent log
+        try:
+            with open('/home/thangdd/repos/TerrARA/.cursor/debug.log', 'a') as f:
+                f.write(json.dumps({
+                    "id": f"log_{int(time.time() * 1000)}",
+                    "timestamp": int(time.time() * 1000),
+                    "location": "step_14_build_diagram.py:165",
+                    "message": "QueryTagged results",
+                    "data": {
+                        "total_nodes": len(other_nodes),
+                        "nodes": [{"id": str(r["id"]), "name": r.get("tfname", ""), "group": r.get("group", "")} for r in other_nodes[:20]]
+                    },
+                    "runId": "compression-debug",
+                    "hypothesisId": "G"
+                }) + "\n")
+        except: pass
+        # #endregion
+        
         for r in other_nodes:
             id_ = str(r["id"])
             if id_ in compos:
                 continue
             crafted_name = "%s (%s) - %s" % (r["group"], r["general_name"], r["tfname"])
             logger.info(f"  {id_} - {crafted_name}")
+            
+            # #region agent log
+            try:
+                with open('/home/thangdd/repos/TerrARA/.cursor/debug.log', 'a') as f:
+                    f.write(json.dumps({
+                        "id": f"log_{int(time.time() * 1000)}",
+                        "timestamp": int(time.time() * 1000),
+                        "location": "step_14_build_diagram.py:172",
+                        "message": "Adding node to diagram",
+                        "data": {
+                            "id": id_,
+                            "name": crafted_name,
+                            "tfname": r.get("tfname", ""),
+                            "group": r.get("group", ""),
+                            "in_compos": id_ in compos
+                        },
+                        "runId": "compression-debug",
+                        "hypothesisId": "G"
+                    }) + "\n")
+            except: pass
+            # #endregion
             
             if r["group"] in procname:
                 n = COMPONENT_ID_NODE.get(id_) if id_ in COMPONENT_ID_NODE else Process(id_, crafted_name, r["annotation"])
@@ -183,12 +223,15 @@ def main():
                 if re.fullmatch(pub, r["name"]):
                     diag.AddPublicNode(n)
         
-        # Save diagram to state (we'll use a global variable approach instead)
-        # Store in a module-level variable
+        # Save diagram to state (both module-level for same-process access and pickle for cross-process)
+        # Store in a module-level variable (for same-process access)
         import step_14_build_diagram as step14_module
         step14_module.diagram = diag
         step14_module.compos = compos
         step14_module.aws = aws
+        
+        # Also save to shared_state using pickle (for cross-process access)
+        set_diagram(diag, compos, aws)
         
         elapsed_time = time.time() - start_time
         logger.info(f"✓ Diagram structure built!")
@@ -206,3 +249,6 @@ def main():
 diagram = None
 compos = None
 aws = None
+
+if __name__ == '__main__':
+    main()

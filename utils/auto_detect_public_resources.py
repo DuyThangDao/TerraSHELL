@@ -76,16 +76,23 @@ def find_resources_connected_to_sg(pathID: str, sg_node_id: str, resource_types:
         # Query to find resources connected to Security Group
         # EC2/RDS have vpc_security_group_ids reference to Security Group
         try:
+            # Query to find resources connected to Security Group
+            # Check res.type, res.resource_type, and res.name (phase 1.5 may change how types are stored)
+            # res.name format: "aws_instance.goat_instance" -> check if starts with resource_type
+            resource_type_prefix = f"{resource_type}."
+            
             records, _, _ = INSTANCE.execute_query(
                 """
                 MATCH (sg:$id:tagged:resource) <-[:REF]- (res:$id:tagged:resource)
                 WHERE ID(sg) = $sg_id
-                  AND res.type = $resource_type
+                  AND ((res.type = $resource_type) 
+                    OR (res.resource_type = $resource_type)
+                    OR (res.name STARTS WITH $resource_type_prefix))
                   AND ((res:processes) OR (res:data_stores))
                 RETURN ID(res) as id, res.group as group, res.general_name as general_name, res.name as tfname
                 """,
                 id=pathID,
-                parameters_={"sg_id": int(sg_node_id), "resource_type": resource_type},
+                parameters_={"sg_id": int(sg_node_id), "resource_type": resource_type, "resource_type_prefix": resource_type_prefix},
                 database_="memgraph"
             )
             results.extend(records)
@@ -118,7 +125,7 @@ def find_public_security_groups(project_path: str, pathID: str) -> List[Dict[str
             """
             MATCH (sg:$id:tagged:resource:processes)
             WHERE sg.type = 'aws_security_group'
-            RETURN ID(sg) as id, sg.name as name, sg.group as group, sg.general_name as general_name
+            RETURN ID(sg) as id, sg.name as name, sg.group as group, sg.general_name as general_name, sg.resource_type as resource_type, sg.resource_name as resource_name
             """,
             id=pathID,
             database_="memgraph"
@@ -127,6 +134,8 @@ def find_public_security_groups(project_path: str, pathID: str) -> List[Dict[str
         for record in records:
             sg_id = str(record["id"])
             sg_name = record.get("name", "")
+            sg_resource_type = record.get("resource_type", "")
+            sg_resource_name = record.get("resource_name", "")
             
             # Parse Security Group name to find resource in Terraform
             # Format: "aws_security_group.allow_ssh" -> type="aws_security_group", name="allow_ssh"
@@ -134,6 +143,10 @@ def find_public_security_groups(project_path: str, pathID: str) -> List[Dict[str
                 parts = sg_name.split(".", 1)
                 resource_type = parts[0]
                 resource_name = parts[1] if len(parts) > 1 else ""
+            elif sg_resource_type and sg_resource_name:
+                # Use resource_type and resource_name from node properties (more reliable after phase 1.5)
+                resource_type = sg_resource_type
+                resource_name = sg_resource_name
             else:
                 # Try to find by name pattern
                 resource_type = "aws_security_group"
