@@ -27,6 +27,70 @@ from utils.n4j_helper import INSTANCE
 
 logger = logging.getLogger(__name__)
 
+# ============================================================================
+# PROPERTY KEY FILTERING CONSTANTS
+# ============================================================================
+
+# Metadata keys that should be filtered out (not functional references)
+METADATA_KEYS_BLACKLIST = {
+    # Tags và metadata
+    'tags', 'tag', 'Tags', 'Tag',
+    'environment', 'Environment', 'env', 'Env',
+    'description', 'Description', 'desc', 'Desc',
+    'comment', 'Comment', 'note', 'Note',
+    'version', 'Version', 'ver', 'Ver',
+    'owner', 'Owner', 'author', 'Author',
+    'created_at', 'CreatedAt', 'created', 'Created',
+    'updated_at', 'UpdatedAt', 'updated', 'Updated',
+    
+    # AWS-specific metadata
+    'arn', 'Arn', 'ARN',  # ARNs handled by Step 3 (Boundary-aware Matching)
+    'account_id', 'AccountId', 'account', 'Account',
+    'region', 'Region', 'availability_zone', 'AvailabilityZone',
+    
+    # Terraform-specific metadata
+    'provider', 'Provider',
+    'lifecycle', 'Lifecycle',
+    
+    # NOTE: 'depends_on' is NOT filtered - kept for safety
+    # NOTE: 'id' is conditionally filtered - see extract_string_values()
+}
+
+# Reference keys that likely contain resource references (whitelist)
+REFERENCE_KEYS_WHITELIST = {
+    # S3 references
+    'bucket', 'bucket_name', 'bucket_arn', 'bucket_id',
+    's3_bucket', 's3_bucket_name', 's3_bucket_arn',
+    
+    # Security Group references
+    'security_groups', 'security_group_ids', 'vpc_security_group_ids',
+    'security_group_id', 'sg_id',
+    
+    # VPC/Network references
+    'vpc_id', 'subnet_id', 'subnet_ids', 'network_id',
+    'vpc', 'subnet', 'subnets',
+    
+    # IAM references
+    'role', 'role_arn', 'role_name', 'iam_role', 'iam_role_arn',
+    'policy', 'policy_arn', 'policy_name',
+    
+    # Database references
+    'db_instance', 'db_name', 'database', 'database_name',
+    'db_endpoint', 'db_host', 'db_connection_string',
+    
+    # Lambda references
+    'function_name', 'function_arn', 'lambda_function',
+    
+    # API Gateway references
+    'rest_api_id', 'api_id', 'api_gateway_id',
+    'endpoint', 'endpoint_url',
+    
+    # Queue/Stream references
+    'queue', 'queue_name', 'queue_url', 'queue_arn',
+    'stream', 'stream_name', 'stream_arn',
+    'topic', 'topic_name', 'topic_arn',
+}
+
 
 class ExactMatcher:
     def __init__(self, path_id: str, case_sensitive: bool = False):
@@ -173,12 +237,14 @@ class ExactMatcher:
 
     def extract_string_values(self, resolved_properties: dict) -> List[str]:
         """
-        Recursively extract all string values from resolved properties.
+        Recursively extract all string values from resolved properties with property key filtering.
         
         Filters out:
         - Empty strings
         - Complex strings (ARNs, URLs) that should be handled by Step 3
         - Non-identifier strings
+        - Strings from metadata keys (tags, environment, etc.)
+        - Random IDs (conditional filter for 'id' key)
         
         Args:
             resolved_properties: Dictionary of resolved properties (from taint_resolved_properties)
@@ -190,7 +256,7 @@ class ExactMatcher:
         
         def is_identifier_string(s: str) -> bool:
             """Check if string looks like a simple identifier (not ARN, URL, etc.)"""
-            if not s or len(s) < 2: # Tăng min length lên 2
+            if not s or len(s) < 4:  # Increased from 2 to 4 to reduce false positives
                 return False
             
             # Filter out ARNs (arn:aws:...) - Để Step 3 xử lý
@@ -219,17 +285,41 @@ class ExactMatcher:
 
             return True
         
-        def extract_recursive(value: Any) -> None:
-            """Recursively extract strings from nested structures"""
+        def extract_recursive(value: Any, parent_key: str = None) -> None:
+            """
+            Recursively extract strings from nested structures with context awareness.
+            
+            Args:
+                value: Value to extract from (can be dict, list, or string)
+                parent_key: Parent property key for context (used for conditional filtering)
+            """
             if isinstance(value, str):
                 if is_identifier_string(value):
+                    # Conditional filter for 'id' key: skip random AWS IDs
+                    if parent_key and parent_key.lower() == 'id':
+                        # Check if value matches AWS ID pattern (e.g., sg-12345678, vpc-abc123)
+                        # Pattern: lowercase letters, dash, alphanumeric (8+ chars)
+                        if re.match(r'^[a-z]+-[a-z0-9]{8,}$', value):
+                            return  # Skip random IDs
+                        # Otherwise, extract (might be resource name)
                     strings.append(value)
             elif isinstance(value, dict):
-                for v in value.values():
-                    extract_recursive(v)
+                for k, v in value.items():
+                    key_lower = k.lower()
+                    
+                    # Skip metadata keys (blacklist)
+                    if key_lower in METADATA_KEYS_BLACKLIST:
+                        continue
+                    
+                    # Prefer whitelist keys (higher confidence for resource references)
+                    if key_lower in REFERENCE_KEYS_WHITELIST:
+                        extract_recursive(v, k)
+                    elif parent_key is None or parent_key.lower() not in METADATA_KEYS_BLACKLIST:
+                        # Extract from other keys (including depends_on, id with validation)
+                        extract_recursive(v, k)
             elif isinstance(value, list):
                 for item in value:
-                    extract_recursive(item)
+                    extract_recursive(item, parent_key)
         
         extract_recursive(resolved_properties)
         
