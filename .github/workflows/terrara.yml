@@ -69,6 +69,7 @@ jobs:
             --network host \
             -v ${{ github.workspace }}:/project \
             -v ${{ github.workspace }}/output:/output \
+            -v ${{ github.workspace }}/input:/app/input \
             -e MEMGRAPH_URI=bolt://localhost:7687 \
             -e DOCKER_ENV=1 \
             duythang/terrara:latest ./terraform-project/implicit_resolver_step_2 || {
