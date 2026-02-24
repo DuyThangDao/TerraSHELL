@@ -5,8 +5,8 @@ on:
 #     paths:
 #       - '**.tf' # Chỉ chạy khi có thay đổi file Terraform
   pull_request:
-    paths:
-      - '**.tf'
+    # paths:
+    #   - '**.tf'
 
 jobs:
   security-check:
