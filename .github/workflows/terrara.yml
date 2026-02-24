@@ -16,14 +16,9 @@ jobs:
     # Khởi tạo Memgraph như một dịch vụ chạy song song
     services:
       memgraph:
-        image: memgraph/memgraph:latest
+        image: memgraph/memgraph-mage:latest
         ports:
           - 7687:7687
-        options: >-
-          --health-cmd "echo 'RETURN 1' | cypher-shell -u neo4j -p '' -a bolt://localhost:7687 || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout code dự án
