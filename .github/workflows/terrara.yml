@@ -1,0 +1,97 @@
+name: TerrARA Security Scan
+
+on:
+#   push:
+#     paths:
+#       - '**.tf' # Chỉ chạy khi có thay đổi file Terraform
+  pull_request:
+    paths:
+      - '**.tf'
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # Thêm timeout để tránh job chạy quá lâu
+
+    # Khởi tạo Memgraph như một dịch vụ chạy song song
+    services:
+      memgraph:
+        image: memgraph/memgraph-mage:latest
+        ports:
+          - 7687:7687
+        options: >-
+          --health-cmd "echo 'RETURN 1' | cypher-shell -u neo4j -p '' -a bolt://localhost:7687 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code dự án
+        uses: actions/checkout@v4
+
+      - name: Cài đặt công cụ kiểm tra kết nối
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y netcat-openbsd curl
+
+      - name: Chờ Memgraph khởi động
+        timeout-minutes: 2
+        run: |
+          echo "Đang chờ Memgraph khởi động..."
+          for i in $(seq 1 30); do
+            if nc -z localhost 7687 2>/dev/null; then
+              echo "✓ Memgraph đã sẵn sàng!"
+              exit 0
+            fi
+            echo "Thử lại lần $i/30..."
+            sleep 2
+          done
+          echo "❌ Memgraph không khởi động được sau 60 giây"
+          exit 1
+
+      - name: Chạy TerrARA từ Docker Hub
+        timeout-minutes: 25
+        run: |
+          # Tạo thư mục chứa báo cáo trên máy Runner
+          mkdir -p output
+          
+          # Kiểm tra Docker image có tồn tại không
+          echo "Đang kiểm tra Docker image..."
+          docker pull thangdd/terrara:latest || {
+            echo "❌ Không thể pull Docker image"
+            exit 1
+          }
+          
+          # Chạy container và kiểm tra exit code
+          echo "Đang chạy TerrARA scan..."
+          docker run --rm \
+            --network host \
+            -v ${{ github.workspace }}:/project \
+            -v ${{ github.workspace }}/output:/output \
+            -e MEMGRAPH_URI=bolt://localhost:7687 \
+            -e DOCKER_ENV=1 \
+            thangdd/terrara:latest ./ || {
+              echo "❌ TerrARA scan thất bại"
+              exit 1
+            }
+          
+          echo "✓ TerrARA scan hoàn thành"
+            
+      - name: Kiểm tra kết quả output
+        if: always()
+        run: |
+          if [ -d "output" ] && [ "$(ls -A output 2>/dev/null)" ]; then
+            echo "✓ Tìm thấy output files:"
+            ls -lh output/
+          else
+            echo "⚠ Cảnh báo: Thư mục output trống hoặc không tồn tại"
+          fi
+
+      - name: Lưu trữ báo cáo (Artifacts)
+        if: always() # Luôn chạy kể cả khi bước trước đó phát hiện lỗi
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: output/
+          retention-days: 7  # Giữ artifacts trong 7 ngày
+          if-no-files-found: warn  # Cảnh báo nếu không có file
