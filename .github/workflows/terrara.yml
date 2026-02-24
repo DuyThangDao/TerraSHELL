@@ -71,7 +71,7 @@ jobs:
             -v ${{ github.workspace }}/output:/output \
             -e MEMGRAPH_URI=bolt://localhost:7687 \
             -e DOCKER_ENV=1 \
-            duythang/terrara:latest ./ || {
+            duythang/terrara:latest ./terraform-project/implicit_resolver_step_2 || {
               echo "❌ TerrARA scan thất bại"
               exit 1
             }
