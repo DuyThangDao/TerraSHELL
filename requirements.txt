@@ -180,3 +180,6 @@ zipp==3.19.2
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
+
+setuptools
+rapidfuzz==3.6.1
