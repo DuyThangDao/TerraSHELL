@@ -19,7 +19,11 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install --no-cache-dir -r requirements.txt
+# Semgrep/OpenTelemetry require pkg_resources (from setuptools). Install explicitly before and after
+# requirements to prevent any package from removing or breaking it during dependency resolution.
+RUN pip install --no-cache-dir setuptools && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir --force-reinstall setuptools
 
 ENTRYPOINT ["python", "main.py"]
 
