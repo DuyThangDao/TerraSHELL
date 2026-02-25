@@ -19,11 +19,17 @@ WORKDIR /app
 
 COPY . /app
 
-# Semgrep/OpenTelemetry require pkg_resources (from setuptools). Install explicitly before and after
-# requirements to prevent any package from removing or breaking it during dependency resolution.
-RUN pip install --no-cache-dir setuptools && \
+# Upgrade pip first to ensure latest package resolution
+RUN pip install --upgrade pip
+
+# Semgrep/OpenTelemetry require pkg_resources (from setuptools). 
+# IMPORTANT: setuptools 82.0.0+ removed pkg_resources entirely!
+# requirements.txt already pins setuptools<82.0.0, but install it first to ensure
+# it's available before other packages that might depend on it
+RUN pip install --no-cache-dir "setuptools<82.0.0,>=65.0.0" && \
     pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir --force-reinstall setuptools
+    python -c "import pkg_resources; print(f'✓ setuptools version: {pkg_resources.get_distribution(\"setuptools\").version}')" && \
+    python -c "import pkg_resources; print(f'✓ pkg_resources available: {pkg_resources.__file__}')"
 
 ENTRYPOINT ["python", "main.py"]
 
