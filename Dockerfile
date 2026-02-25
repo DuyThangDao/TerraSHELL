@@ -1,7 +1,8 @@
 FROM hashicorp/terraform:1.8.0-rc2 as terraform
 FROM ghcr.io/pcasteran/terraform-graph-beautifier:0.3.4-linux as beautifier
 
-FROM python:3.12-slim
+# Use full python image (not slim) - slim lacks setuptools/pkg_resources needed by Semgrep/OpenTelemetry
+FROM python:3.12
 
 ENV PYTHONUNBUFFERED=1
 ENV DOCKER_ENV=1
@@ -18,8 +19,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install --no-cache-dir setuptools && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 ENTRYPOINT ["python", "main.py"]
 
