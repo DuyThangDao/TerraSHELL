@@ -8,6 +8,9 @@ TerrARA, a framework that (1) automates the construction of Data Flow Diagrams (
 ![](./architecture/illustration.png)
 
 ## Usage
+
+> **GitHub Actions Integration:** See [docs/GITHUB-ACTIONS-INTEGRATION.md](docs/GITHUB-ACTIONS-INTEGRATION.md) for step-by-step instructions to run TerrARA as a CI/CD plugin when Terraform code is pushed to GitHub.
+
 ### Docker install
 
 1. Start Memgraph container with `docker compose up -d`
