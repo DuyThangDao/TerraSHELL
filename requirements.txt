@@ -180,6 +180,8 @@ zipp==3.19.2
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
+# IMPORTANT: setuptools 82.0.0+ removed pkg_resources which is required by opentelemetry/semgrep
+# Pin to version < 82.0.0 to ensure pkg_resources is available
 
-setuptools
+setuptools<82.0.0,>=65.0.0
 rapidfuzz==3.6.1
