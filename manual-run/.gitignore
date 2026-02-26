@@ -1,0 +1,5 @@
+# State file
+.state.json
+
+# Log files
+*.log

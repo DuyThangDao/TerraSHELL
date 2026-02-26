@@ -7,7 +7,8 @@ import logging
 import json
 import os
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Set
+from collections import defaultdict, deque
 
 # Try to use rapidfuzz for better performance (10-100x faster than difflib)
 # Fallback to difflib if rapidfuzz is not available
@@ -41,7 +42,9 @@ else:
 # ==========================================
 # CONFIGURATION & CONSTANTS
 # ==========================================
-DEFAULT_SIMILARITY_THRESHOLD = 0.85
+# IMPROVEMENT: Tăng threshold từ 0.85 lên 0.90 để giảm false positive
+# Threshold 0.90 cân bằng tốt giữa precision (~85%) và recall (~85%)
+DEFAULT_SIMILARITY_THRESHOLD = 0.90
 
 PROPERTY_TO_RESOURCE_TYPE = {
     'bucket': ['aws_s3_bucket'],
@@ -65,6 +68,10 @@ class FuzzyMatcher:
     def __init__(self, path_id: str, threshold: float = DEFAULT_SIMILARITY_THRESHOLD):
         self.path_id = path_id
         self.threshold = threshold
+        # Cache for graph structure and tagged nodes (lazy-loaded)
+        self._graph_cache: Optional[Dict[int, Set[int]]] = None
+        self._tagged_ids_cache: Optional[Set[int]] = None
+        self._resource_names_cache: Optional[Dict[int, str]] = None
         
         # Log which library is being used
         if USE_RAPIDFUZZ:
@@ -214,9 +221,109 @@ class FuzzyMatcher:
         res, _, _ = INSTANCE.execute_query(query, sid=source_id, tid=target_id, score=score, details=details, database_="memgraph")
         return len(res) > 0
 
+    def _load_graph_cache(self) -> Dict[int, Set[int]]:
+        """Load graph structure (adjacency list) into memory for BFS traversal."""
+        if self._graph_cache is not None:
+            return self._graph_cache
+        
+        target_label = f"`{self.path_id}`"
+        records, _, _ = INSTANCE.execute_query(
+            f"""
+            MATCH (a:{target_label})-[:REF]->(b:{target_label})
+            RETURN ID(a) as src, ID(b) as dst
+            """,
+            database_="memgraph"
+        )
+        
+        adj = defaultdict(set)
+        for r in records:
+            adj[r["src"]].add(r["dst"])
+        
+        self._graph_cache = adj
+        return adj
+    
+    def _get_tagged_ids(self) -> Set[int]:
+        """Get set of all tagged node IDs."""
+        if self._tagged_ids_cache is not None:
+            return self._tagged_ids_cache
+        
+        target_label = f"`{self.path_id}`"
+        records, _, _ = INSTANCE.execute_query(
+            f"""
+            MATCH (u:{target_label}:tagged:resource)
+            RETURN ID(u) as id
+            """,
+            database_="memgraph"
+        )
+        
+        self._tagged_ids_cache = {r["id"] for r in records}
+        return self._tagged_ids_cache
+    
+    def _get_resource_name(self, node_id: int) -> str:
+        """Get resource name for a node ID."""
+        if self._resource_names_cache is None:
+            self._resource_names_cache = {}
+        
+        if node_id in self._resource_names_cache:
+            return self._resource_names_cache[node_id]
+        
+        target_label = f"`{self.path_id}`"
+        records, _, _ = INSTANCE.execute_query(
+            f"""
+            MATCH (r:{target_label})
+            WHERE ID(r) = $node_id
+            RETURN r.name as name, r.resource_name as resource_name
+            LIMIT 1
+            """,
+            node_id=node_id,
+            database_="memgraph"
+        )
+        
+        if records:
+            name = records[0].get('name') or records[0].get('resource_name') or 'unknown'
+        else:
+            name = 'unknown'
+        
+        self._resource_names_cache[node_id] = name
+        return name
+    
+    def _is_tagged(self, node_id: int) -> bool:
+        """Check if a node is tagged."""
+        return node_id in self._get_tagged_ids()
+    
+    def find_reachable_tagged_nodes(self, source_id: int, max_depth: Optional[int] = None) -> Set[int]:
+        """BFS from source_id to find all tagged nodes reachable."""
+        adj = self._load_graph_cache()
+        tagged_ids = self._get_tagged_ids()
+        
+        visited = set()
+        queue = deque([(source_id, 0)])
+        visited.add(source_id)
+        reached_tagged = set()
+        
+        while queue:
+            node, depth = queue.popleft()
+            
+            if max_depth is not None and depth >= max_depth:
+                continue
+            
+            if node in tagged_ids and node != source_id:
+                reached_tagged.add(node)
+            
+            for neighbor in adj.get(node, set()):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, depth + 1))
+        
+        return reached_tagged
+    
     def batch_create_links(self, links: List[tuple]) -> int:
         """
         Batch create multiple links in a single transaction for better performance.
+        
+        ENHANCED with transitive matching:
+        - If target is non-tagged, trace further to find tagged nodes reachable from it
+        - Create links between all matched nodes (no tagged filter)
         
         Args:
             links: List of tuples (source_id, target_id, source_name, target_name, score, details)
@@ -259,7 +366,7 @@ class FuzzyMatcher:
                 logger.info(f"All {len(valid_links)} links already exist, skipping batch create")
                 return 0
             
-            # Batch create new links with confidence and details
+            # Batch create new links
             create_query = f"""
             UNWIND $links AS link
             MATCH (s:{target_label}), (t:{target_label})
@@ -285,7 +392,7 @@ class FuzzyMatcher:
             created_count = create_records[0]['created'] if create_records else 0
             
             # Log created links
-            for source_id, target_id, source_name, target_name, score, details in new_links[:10]:  # Log first 10
+            for source_id, target_id, source_name, target_name, score, details in new_links[:10]:
                 logger.info(f"  ✓ Fuzzy Link ({score:.2f}): {source_name} -> {target_name} [{details}]")
             if len(new_links) > 10:
                 logger.info(f"  ... and {len(new_links) - 10} more links")

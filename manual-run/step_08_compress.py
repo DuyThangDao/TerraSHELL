@@ -10,7 +10,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.n4j_helper import CompressV2Hybrid, Cleanup
+from utils.n4j_helper import CompressV2BFS, Cleanup
 from shared_state import get_compresses, get_path_id
 
 # Setup logging
@@ -24,22 +24,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def main(max_path_length=20):
+def main():
     """
-    Step 08: Compress nodes (HYBRID OPTIMIZED VERSION)
+    Step 08: Compress nodes (BFS VERSION)
     
     This step compresses multiple nodes matching the same pattern into a single node.
-    Uses Hybrid Approach with:
-    - Direct Relationships First
-    - Progressive Path Length với Early Stop
-    - Optimize Query Order
-    
-    Args:
-        max_path_length: Độ dài path tối đa để thử progressive (default: 20)
-                        Sau đó sẽ fallback về unbounded nếu cần
+    Uses CompressV2BFS which:
+    - Same sequential logic as CompressV2 (proven correct)
+    - Uses BFS in memory instead of Cypher variable-length path (much faster, no timeout)
+    - Pulls graph into memory once, then processes sequentially
+    - Cleanup only once at the end
     """
     logger.info("="*80)
-    logger.info("STEP 08: COMPRESS NODES (HYBRID OPTIMIZED)")
+    logger.info("STEP 08: COMPRESS NODES (BFS)")
     logger.info("="*80)
     
     try:
@@ -52,7 +49,6 @@ def main(max_path_length=20):
             sys.exit(1)
         
         logger.info(f"Path ID: {pathID}")
-        logger.info(f"Max path length: {max_path_length}")
         logger.info(f"Resources to compress: {compresses}")
         
         if not compresses:
@@ -65,10 +61,9 @@ def main(max_path_length=20):
             logger.info(f"[{i}/{len(compresses)}] Compressing: {compress}")
             compress_start = time.time()
             
-            # Sử dụng Hybrid version với tất cả optimizations
-            CompressV2Hybrid(compress, pathID, max_path_length=max_path_length)
+            CompressV2BFS(compress, pathID)
             
-            # Note: Cleanup đã được gọi bên trong CompressV2Hybrid nếu cần
+            # Note: Cleanup is called inside CompressV2BFS (once at the end)
             
             compress_elapsed = time.time() - compress_start
             logger.info(f"  ✓ Compressed {compress} in {compress_elapsed:.2f} seconds")

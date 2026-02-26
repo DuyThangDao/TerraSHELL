@@ -18,6 +18,139 @@ from typing import Dict, Optional
 logger = logging.getLogger(__name__)
 
 
+def run_implicit_enrich_only(project_path: str) -> Dict[str, int]:
+    """
+    Phase 1.5a: Enrich Graph with HCL Properties + Taint Analysis ONLY.
+    
+    This function ONLY enriches properties (decodes variables/locals) and stores
+    them in nodes. It does NOT create any edges.
+    
+    Should be called BEFORE Tag/RemoveNonTagged to ensure all nodes have
+    enriched properties before non-tagged nodes are deleted.
+    
+    Args:
+        project_path: Absolute path to Terraform project directory
+        
+    Returns:
+        Dictionary with enrich count: {'enrich': 1}
+    """
+    results = {'enrich': 0}
+    
+    logger.info("="*70)
+    logger.info("PHASE 1.5a: ENRICH GRAPH (Properties Only)")
+    logger.info("="*70)
+    
+    logger.info("[1/1] Enriching graph with HCL properties...")
+    from implicit_dependency_resolver.taint_analysis import enrich_graph
+    enrich_graph(project_path)
+    results['enrich'] = 1
+    
+    logger.info("✓ Enrich completed: Properties decoded and stored in nodes")
+    logger.info("="*70)
+    
+    return results
+
+
+def run_implicit_matching_only(
+    path_id: str,
+    enable_exact: bool = True,
+    enable_boundary: bool = True,
+    enable_fuzzy: bool = True,
+    fuzzy_threshold: Optional[float] = None,
+    case_sensitive: bool = False
+) -> Dict[str, int]:
+    """
+    Phase 1.5b: Implicit Matching ONLY (Exact, Boundary, Fuzzy).
+    
+    This function ONLY creates REF edges between tagged nodes based on
+    matching algorithms. It does NOT enrich properties.
+    
+    Should be called AFTER Compress to ensure edges are created at the
+    compressed level, not at granular resource level.
+    
+    Args:
+        path_id: Path ID from graph database (from GetPathID)
+        enable_exact: Enable Exact Matching
+        enable_boundary: Enable Boundary-aware Matching
+        enable_fuzzy: Enable Fuzzy Matching
+        fuzzy_threshold: Custom threshold for fuzzy matching (default: 0.90)
+        case_sensitive: Whether matching should be case-sensitive
+        
+    Returns:
+        Dictionary with counts for each matching step:
+        {
+            'exact': count,
+            'boundary': count,
+            'fuzzy': count
+        }
+    """
+    results = {
+        'exact': 0,
+        'boundary': 0,
+        'fuzzy': 0
+    }
+    
+    logger.info("="*70)
+    logger.info("PHASE 1.5b: IMPLICIT MATCHING (Edges Only)")
+    logger.info("="*70)
+    
+    # ========================================================================
+    # STEP 1: Exact Matching
+    # ========================================================================
+    if enable_exact:
+        logger.info("[1/3] Running Exact Matching...")
+        from implicit_dependency_resolver.exact_matching import ExactMatcher
+        matcher = ExactMatcher(path_id, case_sensitive=case_sensitive)
+        results['exact'] = matcher.run()
+        logger.info(f"✓ Exact: {results['exact']} links created")
+    else:
+        logger.info("[1/3] Skipping Exact Matching (disabled)")
+    
+    # ========================================================================
+    # STEP 2: Boundary-aware Substring Matching
+    # ========================================================================
+    if enable_boundary:
+        logger.info("[2/3] Running Boundary-aware Matching...")
+        from implicit_dependency_resolver.boundary_aware_matching import BoundaryAwareMatcher
+        matcher = BoundaryAwareMatcher(path_id, case_sensitive=case_sensitive)
+        results['boundary'] = matcher.run()
+        logger.info(f"✓ Boundary: {results['boundary']} links created")
+    else:
+        logger.info("[2/3] Skipping Boundary-aware Matching (disabled)")
+    
+    # ========================================================================
+    # STEP 3: Fuzzy & Heuristic Matching
+    # ========================================================================
+    if enable_fuzzy:
+        logger.info("[3/3] Running Fuzzy Matching...")
+        from implicit_dependency_resolver.fuzzy_matching import FuzzyMatcher
+        if fuzzy_threshold is not None:
+            matcher = FuzzyMatcher(path_id, threshold=fuzzy_threshold)
+            logger.info(f"Using custom fuzzy threshold: {fuzzy_threshold}")
+        else:
+            matcher = FuzzyMatcher(path_id)
+            logger.info(f"Using default fuzzy threshold: {matcher.threshold}")
+        results['fuzzy'] = matcher.run()
+        logger.info(f"✓ Fuzzy: {results['fuzzy']} links created")
+    else:
+        logger.info("[3/3] Skipping Fuzzy Matching (disabled)")
+    
+    # ========================================================================
+    # Summary
+    # ========================================================================
+    total_links = results['exact'] + results['boundary'] + results['fuzzy']
+    logger.info("="*70)
+    logger.info("IMPLICIT MATCHING SUMMARY")
+    logger.info("="*70)
+    logger.info(f"  Exact links:    {results['exact']:4d}")
+    logger.info(f"  Boundary links: {results['boundary']:4d}")
+    logger.info(f"  Fuzzy links:    {results['fuzzy']:4d}")
+    logger.info(f"  Total implicit links: {total_links}")
+    logger.info("="*70)
+    
+    return results
+
+
 def run_implicit_dependency_resolution(
     project_path: str,
     path_id: str,

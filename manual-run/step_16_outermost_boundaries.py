@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from dfdgraph import TrustBoundary
 from dfdgraph.trustboundary import BOUNDARY_ID_NODE
 from utils.n4j_helper import QueryOutermostBoundary
-from shared_state import get_path_id
+from shared_state import get_path_id, get_diagram
 import step_14_build_diagram as step14_module
 
 # Setup logging
@@ -46,11 +46,20 @@ def main():
             sys.exit(1)
         
         # Check if diagram exists from step 14
-        if step14_module.diagram is None or step14_module.aws is None:
-            logger.error("Diagram not found. Please run Step 14 first.")
-            sys.exit(1)
-        
-        aws = step14_module.aws
+        # First try module-level variable (for same-process access)
+        if step14_module.aws is not None:
+            aws = step14_module.aws
+        else:
+            # Fallback to shared_state pickle file (for cross-process access)
+            diag, compos, aws = get_diagram()
+            if aws is None:
+                logger.error("Diagram not found. Please run Step 14 first.")
+                sys.exit(1)
+            # Also update module-level variables for consistency
+            step14_module.diagram = diag
+            step14_module.compos = compos
+            step14_module.aws = aws
+            logger.info("Loaded diagram from shared state file")
         
         logger.info(f"Path ID: {pathID}")
         

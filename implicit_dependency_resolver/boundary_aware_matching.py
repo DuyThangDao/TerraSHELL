@@ -11,7 +11,8 @@ import re
 import string
 import os
 import sys
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any, Set, Optional
+from collections import defaultdict, deque
 
 # Setup paths to import internal modules BEFORE importing utils
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -29,10 +30,30 @@ VALID_BOUNDARY_CHARS = {':', '/', '.', '@', '-', '"', "'", ' ', '=', '<', '>'}
 # Invalid boundary characters: letters and digits (to avoid matching words within words)
 INVALID_BOUNDARY_CHARS = set(string.ascii_letters + string.digits + '_') # Thêm '_' vào invalid để tránh match biến
 
+# ============================================================
+# FALSE POSITIVE REDUCTION: Generic Word Blacklist
+# ============================================================
+# Blacklist các từ quá generic, xuất hiện trong nhiều context không liên quan
+GENERIC_WORD_BLACKLIST = {
+    'user', 'users', 'admin', 'admins', 'test', 'tests', 'dev', 'prod',
+    'api', 'apis', 'id', 'ids', 'name', 'names', 'key', 'keys',
+    'value', 'values', 'data', 'config', 'settings', 'default',
+    'main', 'primary', 'secondary', 'backup', 'temp', 'tmp',
+    'v1', 'v2', 'v3', 'version', 'env', 'environment', 'app', 'apps',
+    'service', 'services', 'server', 'servers', 'host', 'hosts'
+}
+
+# Minimum length cho resource names trong Step 3 (tăng từ 3 lên 5)
+MIN_RESOURCE_NAME_LENGTH = 5
+
 class BoundaryAwareMatcher:
     def __init__(self, path_id: str, case_sensitive: bool = False):
         self.path_id = path_id
         self.case_sensitive = case_sensitive
+        # Cache for graph structure and tagged nodes (lazy-loaded)
+        self._graph_cache: Optional[Dict[int, Set[int]]] = None
+        self._tagged_ids_cache: Optional[Set[int]] = None
+        self._resource_names_cache: Optional[Dict[int, str]] = None
 
     def build_symbol_table(self) -> Dict[str, Dict[str, Any]]:
         """
@@ -85,11 +106,18 @@ class BoundaryAwareMatcher:
                 # Helper add
                 def add(val):
                     if not val or not isinstance(val, str): return
-                    # SAFETY CHECK: Step 3 rất nhạy cảm, không index tên quá ngắn (< 3 chars)
-                    # Ví dụ: resource tên "db", "id", "s3" -> Bỏ qua để tránh noise
-                    if len(val) < 3: return
+                    # IMPROVEMENT 1: Tăng minimum length từ 3 lên 5 để tránh generic words ngắn
+                    if len(val) < MIN_RESOURCE_NAME_LENGTH: 
+                        logger.debug(f"Skipping resource name too short: '{val}' (< {MIN_RESOURCE_NAME_LENGTH} chars)")
+                        return
                     
-                    key = val if self.case_sensitive else val.lower()
+                    # IMPROVEMENT 2: Check blacklist để loại bỏ generic words
+                    val_lower = val.lower()
+                    if val_lower in GENERIC_WORD_BLACKLIST:
+                        logger.debug(f"Skipping generic word in symbol table: '{val}'")
+                        return
+                    
+                    key = val if self.case_sensitive else val_lower
                     if key not in symbol_table:
                         # Lưu tên gốc để dùng cho việc check boundary
                         # (metadata lưu tên đại diện, nhưng ta cần biết chính xác từ khóa nào đã match)
@@ -138,9 +166,87 @@ class BoundaryAwareMatcher:
         if char is None: return True
         return char in VALID_BOUNDARY_CHARS or char not in INVALID_BOUNDARY_CHARS
 
+    def is_valid_dependency_context(self, source_string: str, matched_substring: str, 
+                                    match_position: int) -> bool:
+        """
+        IMPROVEMENT 3: Context-aware Pattern Matching
+        
+        Kiểm tra xem match có nằm trong context hợp lệ cho dependency không.
+        
+        ACCEPT:
+        - ARN patterns (arn:aws:service:region:account:resource-name)
+        - JDBC/Connection strings (jdbc:mysql://host:port/dbname)
+        - AWS Service URLs (https://service.region.amazonaws.com/...)
+        
+        REJECT:
+        - REST API paths trong HTTP URLs (https://api.internal/v1/user/profile)
+        - Generic HTTP URLs không có service pattern
+        
+        Args:
+            source_string: Chuỗi nguồn đầy đủ
+            matched_substring: Substring đã match
+            match_position: Vị trí của match trong source_string
+            
+        Returns:
+            True nếu match trong context hợp lệ, False nếu không hợp lệ
+        """
+        s_lower = source_string.lower()
+        
+        # ============================================================
+        # ACCEPT: ARN patterns (luôn hợp lệ)
+        # ============================================================
+        if re.match(r'arn:aws:[^:]+:[^:]*:[^:]*:[^:]*', source_string):
+            return True
+        
+        # ============================================================
+        # ACCEPT: JDBC/Connection strings (luôn hợp lệ)
+        # ============================================================
+        if re.match(r'(jdbc|postgres|mysql|mongodb|redis|mssql)://', s_lower):
+            return True
+        
+        # ============================================================
+        # ACCEPT: AWS Service URLs (SQS, S3, etc.)
+        # ============================================================
+        if '.amazonaws.com' in s_lower:
+            return True
+        
+        # ============================================================
+        # REJECT: REST API paths trong HTTP URLs
+        # ============================================================
+        if source_string.startswith(('http://', 'https://')):
+            # Tìm vị trí kết thúc domain (sau protocol và domain)
+            # Pattern: https://domain.com/path hoặc https://domain:port/path
+            domain_match = re.match(r'https?://([^/]+)', source_string)
+            if domain_match:
+                domain_end = domain_match.end()  # Vị trí sau domain
+                # Nếu match nằm trong path (sau domain), REJECT
+                if match_position >= domain_end:
+                    # Trừ khi là AWS service URL
+                    if '.amazonaws.com' not in s_lower:
+                        logger.debug(
+                            f"Rejecting match in REST API path: '{matched_substring}' "
+                            f"at position {match_position} in '{source_string[:80]}...'"
+                        )
+                        return False
+        
+        # ============================================================
+        # REJECT: Generic HTTP URLs không có service pattern
+        # ============================================================
+        if source_string.startswith(('http://', 'https://')):
+            # Chỉ accept nếu có AWS service pattern hoặc connection string pattern
+            if '.amazonaws.com' not in s_lower:
+                return False
+        
+        # ============================================================
+        # DEFAULT: Accept nếu không match pattern nào ở trên
+        # ============================================================
+        return True
+
     def check_boundary_match(self, source_string: str, target_name: str) -> bool:
         """
-        Check if target_name appears in source_string with valid boundaries.
+        Check if target_name appears in source_string with valid boundaries AND valid context.
+        
+        IMPROVEMENT: Thêm context-aware check để tránh false positive từ REST API paths.
         """
         if not source_string or not target_name: return False
         
@@ -157,8 +263,11 @@ class BoundaryAwareMatcher:
             char_before = source_string[start_pos - 1] if start_pos > 0 else None
             char_after = source_string[end_pos] if end_pos < len(source_string) else None
             
+            # Boundary check
             if self.is_valid_boundary(char_before) and self.is_valid_boundary(char_after):
-                return True
+                # IMPROVEMENT 3: Context check - chỉ match trong context hợp lệ
+                if self.is_valid_dependency_context(source_string, target_name, start_pos):
+                    return True
             
             start_pos = source_search.find(target_search, start_pos + 1)
         
@@ -270,9 +379,109 @@ class BoundaryAwareMatcher:
             logger.warning(f"Error creating link: {e}")
             return False
 
+    def _load_graph_cache(self) -> Dict[int, Set[int]]:
+        """Load graph structure (adjacency list) into memory for BFS traversal."""
+        if self._graph_cache is not None:
+            return self._graph_cache
+        
+        target_label = f"`{self.path_id}`"
+        records, _, _ = INSTANCE.execute_query(
+            f"""
+            MATCH (a:{target_label})-[:REF]->(b:{target_label})
+            RETURN ID(a) as src, ID(b) as dst
+            """,
+            database_="memgraph"
+        )
+        
+        adj = defaultdict(set)
+        for r in records:
+            adj[r["src"]].add(r["dst"])
+        
+        self._graph_cache = adj
+        return adj
+    
+    def _get_tagged_ids(self) -> Set[int]:
+        """Get set of all tagged node IDs."""
+        if self._tagged_ids_cache is not None:
+            return self._tagged_ids_cache
+        
+        target_label = f"`{self.path_id}`"
+        records, _, _ = INSTANCE.execute_query(
+            f"""
+            MATCH (u:{target_label}:tagged:resource)
+            RETURN ID(u) as id
+            """,
+            database_="memgraph"
+        )
+        
+        self._tagged_ids_cache = {r["id"] for r in records}
+        return self._tagged_ids_cache
+    
+    def _get_resource_name(self, node_id: int) -> str:
+        """Get resource name for a node ID."""
+        if self._resource_names_cache is None:
+            self._resource_names_cache = {}
+        
+        if node_id in self._resource_names_cache:
+            return self._resource_names_cache[node_id]
+        
+        target_label = f"`{self.path_id}`"
+        records, _, _ = INSTANCE.execute_query(
+            f"""
+            MATCH (r:{target_label})
+            WHERE ID(r) = $node_id
+            RETURN r.name as name, r.resource_name as resource_name
+            LIMIT 1
+            """,
+            node_id=node_id,
+            database_="memgraph"
+        )
+        
+        if records:
+            name = records[0].get('name') or records[0].get('resource_name') or 'unknown'
+        else:
+            name = 'unknown'
+        
+        self._resource_names_cache[node_id] = name
+        return name
+    
+    def _is_tagged(self, node_id: int) -> bool:
+        """Check if a node is tagged."""
+        return node_id in self._get_tagged_ids()
+    
+    def find_reachable_tagged_nodes(self, source_id: int, max_depth: Optional[int] = None) -> Set[int]:
+        """BFS from source_id to find all tagged nodes reachable."""
+        adj = self._load_graph_cache()
+        tagged_ids = self._get_tagged_ids()
+        
+        visited = set()
+        queue = deque([(source_id, 0)])
+        visited.add(source_id)
+        reached_tagged = set()
+        
+        while queue:
+            node, depth = queue.popleft()
+            
+            if max_depth is not None and depth >= max_depth:
+                continue
+            
+            if node in tagged_ids and node != source_id:
+                reached_tagged.add(node)
+            
+            for neighbor in adj.get(node, set()):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, depth + 1))
+        
+        return reached_tagged
+    
     def batch_create_links(self, links: List[tuple]) -> int:
         """
         Batch create multiple links in a single transaction for better performance.
+        
+        ENHANCED with transitive matching:
+        - If target is non-tagged, trace further to find tagged nodes reachable from it
+        - Create links between all matched nodes (no tagged filter)
         
         Args:
             links: List of tuples (source_id, target_id, source_name, target_name, matched_substring, source_string)
@@ -315,7 +524,7 @@ class BoundaryAwareMatcher:
                 logger.info(f"All {len(valid_links)} links already exist, skipping batch create")
                 return 0
             
-            # Batch create new links with details
+            # Batch create new links
             create_query = f"""
             UNWIND $links AS link
             MATCH (s:{target_label}), (t:{target_label})
@@ -339,7 +548,7 @@ class BoundaryAwareMatcher:
             created_count = create_records[0]['created'] if create_records else 0
             
             # Log created links
-            for source_id, target_id, source_name, target_name, matched_substring, source_string in new_links[:10]:  # Log first 10
+            for source_id, target_id, source_name, target_name, matched_substring, source_string in new_links[:10]:
                 logger.info(f"  ✓ Link: {source_name} -> {target_name} (found '{matched_substring}' in '{source_string[:50]}...')")
             if len(new_links) > 10:
                 logger.info(f"  ... and {len(new_links) - 10} more links")

@@ -13,7 +13,8 @@ import json
 import re
 import os
 import sys
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any, Set, Optional
+from collections import defaultdict, deque
 
 # Setup paths to import internal modules BEFORE importing utils
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -25,6 +26,70 @@ if parent_dir not in sys.path:
 from utils.n4j_helper import INSTANCE
 
 logger = logging.getLogger(__name__)
+
+# ============================================================================
+# PROPERTY KEY FILTERING CONSTANTS
+# ============================================================================
+
+# Metadata keys that should be filtered out (not functional references)
+METADATA_KEYS_BLACKLIST = {
+    # Tags và metadata
+    'tags', 'tag', 'Tags', 'Tag',
+    'environment', 'Environment', 'env', 'Env',
+    'description', 'Description', 'desc', 'Desc',
+    'comment', 'Comment', 'note', 'Note',
+    'version', 'Version', 'ver', 'Ver',
+    'owner', 'Owner', 'author', 'Author',
+    'created_at', 'CreatedAt', 'created', 'Created',
+    'updated_at', 'UpdatedAt', 'updated', 'Updated',
+    
+    # AWS-specific metadata
+    'arn', 'Arn', 'ARN',  # ARNs handled by Step 3 (Boundary-aware Matching)
+    'account_id', 'AccountId', 'account', 'Account',
+    'region', 'Region', 'availability_zone', 'AvailabilityZone',
+    
+    # Terraform-specific metadata
+    'provider', 'Provider',
+    'lifecycle', 'Lifecycle',
+    
+    # NOTE: 'depends_on' is NOT filtered - kept for safety
+    # NOTE: 'id' is conditionally filtered - see extract_string_values()
+}
+
+# Reference keys that likely contain resource references (whitelist)
+REFERENCE_KEYS_WHITELIST = {
+    # S3 references
+    'bucket', 'bucket_name', 'bucket_arn', 'bucket_id',
+    's3_bucket', 's3_bucket_name', 's3_bucket_arn',
+    
+    # Security Group references
+    'security_groups', 'security_group_ids', 'vpc_security_group_ids',
+    'security_group_id', 'sg_id',
+    
+    # VPC/Network references
+    'vpc_id', 'subnet_id', 'subnet_ids', 'network_id',
+    'vpc', 'subnet', 'subnets',
+    
+    # IAM references
+    'role', 'role_arn', 'role_name', 'iam_role', 'iam_role_arn',
+    'policy', 'policy_arn', 'policy_name',
+    
+    # Database references
+    'db_instance', 'db_name', 'database', 'database_name',
+    'db_endpoint', 'db_host', 'db_connection_string',
+    
+    # Lambda references
+    'function_name', 'function_arn', 'lambda_function',
+    
+    # API Gateway references
+    'rest_api_id', 'api_id', 'api_gateway_id',
+    'endpoint', 'endpoint_url',
+    
+    # Queue/Stream references
+    'queue', 'queue_name', 'queue_url', 'queue_arn',
+    'stream', 'stream_name', 'stream_arn',
+    'topic', 'topic_name', 'topic_arn',
+}
 
 
 class ExactMatcher:
@@ -38,6 +103,10 @@ class ExactMatcher:
         """
         self.path_id = path_id
         self.case_sensitive = case_sensitive
+        # Cache for graph structure and tagged nodes (lazy-loaded)
+        self._graph_cache: Optional[Dict[int, Set[int]]] = None
+        self._tagged_ids_cache: Optional[Set[int]] = None
+        self._resource_names_cache: Optional[Dict[int, str]] = None
 
     def build_symbol_table(self) -> Dict[str, Dict[str, Any]]:
         """
@@ -168,12 +237,14 @@ class ExactMatcher:
 
     def extract_string_values(self, resolved_properties: dict) -> List[str]:
         """
-        Recursively extract all string values from resolved properties.
+        Recursively extract all string values from resolved properties with property key filtering.
         
         Filters out:
         - Empty strings
         - Complex strings (ARNs, URLs) that should be handled by Step 3
         - Non-identifier strings
+        - Strings from metadata keys (tags, environment, etc.)
+        - Random IDs (conditional filter for 'id' key)
         
         Args:
             resolved_properties: Dictionary of resolved properties (from taint_resolved_properties)
@@ -185,7 +256,7 @@ class ExactMatcher:
         
         def is_identifier_string(s: str) -> bool:
             """Check if string looks like a simple identifier (not ARN, URL, etc.)"""
-            if not s or len(s) < 2: # Tăng min length lên 2
+            if not s or len(s) < 4:  # Increased from 2 to 4 to reduce false positives
                 return False
             
             # Filter out ARNs (arn:aws:...) - Để Step 3 xử lý
@@ -214,17 +285,41 @@ class ExactMatcher:
 
             return True
         
-        def extract_recursive(value: Any) -> None:
-            """Recursively extract strings from nested structures"""
+        def extract_recursive(value: Any, parent_key: str = None) -> None:
+            """
+            Recursively extract strings from nested structures with context awareness.
+            
+            Args:
+                value: Value to extract from (can be dict, list, or string)
+                parent_key: Parent property key for context (used for conditional filtering)
+            """
             if isinstance(value, str):
                 if is_identifier_string(value):
+                    # Conditional filter for 'id' key: skip random AWS IDs
+                    if parent_key and parent_key.lower() == 'id':
+                        # Check if value matches AWS ID pattern (e.g., sg-12345678, vpc-abc123)
+                        # Pattern: lowercase letters, dash, alphanumeric (8+ chars)
+                        if re.match(r'^[a-z]+-[a-z0-9]{8,}$', value):
+                            return  # Skip random IDs
+                        # Otherwise, extract (might be resource name)
                     strings.append(value)
             elif isinstance(value, dict):
-                for v in value.values():
-                    extract_recursive(v)
+                for k, v in value.items():
+                    key_lower = k.lower()
+                    
+                    # Skip metadata keys (blacklist)
+                    if key_lower in METADATA_KEYS_BLACKLIST:
+                        continue
+                    
+                    # Prefer whitelist keys (higher confidence for resource references)
+                    if key_lower in REFERENCE_KEYS_WHITELIST:
+                        extract_recursive(v, k)
+                    elif parent_key is None or parent_key.lower() not in METADATA_KEYS_BLACKLIST:
+                        # Extract from other keys (including depends_on, id with validation)
+                        extract_recursive(v, k)
             elif isinstance(value, list):
                 for item in value:
-                    extract_recursive(item)
+                    extract_recursive(item, parent_key)
         
         extract_recursive(resolved_properties)
         
@@ -317,9 +412,159 @@ class ExactMatcher:
             logger.warning(f"Error creating link from {source_resource_id} to {target_resource_id}: {e}")
             return False
 
+    def _load_graph_cache(self) -> Dict[int, Set[int]]:
+        """
+        Load graph structure (adjacency list) into memory for BFS traversal.
+        Cached after first call to avoid repeated database queries.
+        
+        Returns:
+            Adjacency list: {source_id: {target_id1, target_id2, ...}}
+        """
+        if self._graph_cache is not None:
+            return self._graph_cache
+        
+        target_label = f"`{self.path_id}`"
+        
+        # Pull all REF edges (similar to LinkTaggedBFS Step 2)
+        records, _, _ = INSTANCE.execute_query(
+            f"""
+            MATCH (a:{target_label})-[:REF]->(b:{target_label})
+            RETURN ID(a) as src, ID(b) as dst
+            """,
+            database_="memgraph"
+        )
+        
+        # Build adjacency list
+        adj = defaultdict(set)
+        for r in records:
+            adj[r["src"]].add(r["dst"])
+        
+        self._graph_cache = adj
+        logger.debug(f"Loaded graph cache: {len(adj)} nodes with edges")
+        return adj
+    
+    def _get_tagged_ids(self) -> Set[int]:
+        """
+        Get set of all tagged node IDs. Cached after first call.
+        
+        Returns:
+            Set of tagged node IDs
+        """
+        if self._tagged_ids_cache is not None:
+            return self._tagged_ids_cache
+        
+        target_label = f"`{self.path_id}`"
+        records, _, _ = INSTANCE.execute_query(
+            f"""
+            MATCH (u:{target_label}:tagged:resource)
+            RETURN ID(u) as id
+            """,
+            database_="memgraph"
+        )
+        
+        self._tagged_ids_cache = {r["id"] for r in records}
+        logger.debug(f"Loaded {len(self._tagged_ids_cache)} tagged node IDs")
+        return self._tagged_ids_cache
+    
+    def _get_resource_name(self, node_id: int) -> str:
+        """
+        Get resource name for a node ID. Cached after first call.
+        
+        Args:
+            node_id: Node ID
+            
+        Returns:
+            Resource name or "unknown"
+        """
+        if self._resource_names_cache is None:
+            self._resource_names_cache = {}
+        
+        if node_id in self._resource_names_cache:
+            return self._resource_names_cache[node_id]
+        
+        target_label = f"`{self.path_id}`"
+        records, _, _ = INSTANCE.execute_query(
+            f"""
+            MATCH (r:{target_label})
+            WHERE ID(r) = $node_id
+            RETURN r.name as name, r.resource_name as resource_name
+            LIMIT 1
+            """,
+            node_id=node_id,
+            database_="memgraph"
+        )
+        
+        if records:
+            name = records[0].get('name') or records[0].get('resource_name') or 'unknown'
+        else:
+            name = 'unknown'
+        
+        self._resource_names_cache[node_id] = name
+        return name
+    
+    def _is_tagged(self, node_id: int) -> bool:
+        """
+        Check if a node is tagged.
+        
+        Args:
+            node_id: Node ID
+            
+        Returns:
+            True if node is tagged, False otherwise
+        """
+        return node_id in self._get_tagged_ids()
+    
+    def find_reachable_tagged_nodes(self, source_id: int, max_depth: Optional[int] = None) -> Set[int]:
+        """
+        BFS from source_id to find all tagged nodes reachable.
+        Used for transitive matching: when a non-tagged target is found,
+        trace further to find tagged nodes reachable from it.
+        
+        Similar to LinkTaggedBFS but only from a single source.
+        
+        Args:
+            source_id: Source node ID to start BFS from
+            max_depth: Maximum depth (None = unlimited, recommended for 100% accuracy)
+        
+        Returns:
+            Set of tagged node IDs reachable from source_id (excluding source_id itself)
+        """
+        adj = self._load_graph_cache()
+        tagged_ids = self._get_tagged_ids()
+        
+        visited = set()
+        queue = deque([(source_id, 0)])  # (node_id, depth)
+        visited.add(source_id)
+        reached_tagged = set()
+        
+        while queue:
+            node, depth = queue.popleft()
+            
+            # Check max_depth (if specified)
+            if max_depth is not None and depth >= max_depth:
+                continue
+            
+            # If tagged node (and not source), add to result
+            if node in tagged_ids and node != source_id:
+                reached_tagged.add(node)
+                # Continue BFS through tagged nodes (like LinkTaggedBFS)
+            
+            # BFS continue
+            for neighbor in adj.get(node, set()):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, depth + 1))
+        
+        return reached_tagged
+    
     def batch_create_links(self, links: List[tuple]) -> int:
         """
         Batch create multiple links in a single transaction for better performance.
+        
+        ENHANCED with transitive matching:
+        - If target is non-tagged, trace further to find tagged nodes reachable from it
+        - Create links between all matched nodes (no tagged filter)
+        - This ensures links are preserved after RemoveNonTagged step
         
         Args:
             links: List of tuples (source_id, target_id, source_name, target_name, matched_string)

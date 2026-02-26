@@ -34,7 +34,17 @@ def GetSemgrepJSON(folderPath: str, configPath: str) -> str:
     ]
 
     logger.info("Running %s" % ' '.join(command)) 
-    run(command, capture_output=True, check=True)
+    result = run(command, capture_output=True, text=True, check=False)
+    
+    if result.returncode != 0:
+        error_msg = f"Semgrep failed with exit code {result.returncode}\n"
+        error_msg += f"Command: {' '.join(command)}\n"
+        if result.stdout:
+            error_msg += f"STDOUT:\n{result.stdout}\n"
+        if result.stderr:
+            error_msg += f"STDERR:\n{result.stderr}\n"
+        logger.error(error_msg)
+        raise Exception(error_msg)
     
     logger.info("Writting to %s" % path)
 

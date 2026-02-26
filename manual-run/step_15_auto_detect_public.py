@@ -11,8 +11,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dfdgraph.component import COMPONENT_ID_NODE
+from dfdgraph import Diagram, Process, DataStore, TrustBoundary  # Import để dill có thể load được
 from utils.auto_detect_public_resources import auto_detect_public_resources
-from shared_state import get_in_path, get_path_id
+from shared_state import get_in_path, get_path_id, get_diagram
 import step_14_build_diagram as step14_module
 
 # Setup logging
@@ -50,11 +51,20 @@ def main():
             sys.exit(1)
         
         # Check if diagram exists from step 14
-        if step14_module.diagram is None:
-            logger.error("Diagram not found. Please run Step 14 first.")
-            sys.exit(1)
-        
-        diag = step14_module.diagram
+        # First try module-level variable (for same-process access)
+        if step14_module.diagram is not None:
+            diag = step14_module.diagram
+        else:
+            # Fallback to shared_state pickle file (for cross-process access)
+            diag, compos, aws = get_diagram()
+            if diag is None:
+                logger.error("Diagram not found. Please run Step 14 first.")
+                sys.exit(1)
+            # Also update module-level variables for consistency
+            step14_module.diagram = diag
+            step14_module.compos = compos
+            step14_module.aws = aws
+            logger.info("Loaded diagram from shared state file")
         
         logger.info(f"Input path: {in_path}")
         logger.info(f"Path ID: {pathID}")
